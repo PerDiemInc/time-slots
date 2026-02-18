@@ -1,0 +1,62 @@
+{
+  "name": "@perdieminc/time-slots",
+  "version": "0.0.1",
+  "description": "Generate time slots for scheduling",
+  "keywords": [
+    "time-slots",
+    "schedule",
+    "slots"
+  ],
+  "license": "MIT",
+  "author": "Per Diem Subscriptions Inc.",
+  "homepage": "https://github.com/PerDiemInc/perdiem-pkgs#readme",
+  "bugs": {
+    "url": "https://github.com/PerDiemInc/perdiem-pkgs/issues"
+  },
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PerDiemInc/perdiem-pkgs.git"
+  },
+  "scripts": {
+    "lint": "biome lint .",
+    "format": "biome check --write .",
+    "clean": "rm -rf lib types coverage",
+    "build": "tsc -b .",
+    "build:watch": "tsc --watch",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "coveralls": "vitest run --coverage",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
+    "timezone-support": "^2.2.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.11",
+    "@types/node": "^20.19.27",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4",
+    "@vitest/coverage-v8": "^3.2.4"
+  },
+  "files": [
+    "src"
+  ],
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "private": true
+}
