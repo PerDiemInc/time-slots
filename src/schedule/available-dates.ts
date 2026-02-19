@@ -1,8 +1,30 @@
-import { isAfter, isSameDay } from "date-fns";
+import { tz } from "@date-fns/tz";
+import { isAfter, isSameDay, startOfDay } from "date-fns";
 import { findTimeZone, getUnixTime, getZonedTime } from "timezone-support";
 
-import type { GetNextAvailableDatesParams } from "../types";
+import { PLATFORM } from "../constants";
+import type { GetNextAvailableDatesParams, Platform } from "../types";
 import { addDaysInTimeZone, setHmOnDate } from "../utils/date";
+
+function getStartOfDayInZone(
+	startDate: Date,
+	timeZone: string,
+	platform: Platform,
+): Date {
+	if (platform !== PLATFORM.ANDROID) {
+		return startOfDay(startDate, { in: tz(timeZone) });
+	}
+	const zoned = getZonedTime(startDate, findTimeZone(timeZone));
+	return new Date(
+		getUnixTime({
+			...zoned,
+			hours: 0,
+			minutes: 0,
+			seconds: 0,
+			milliseconds: 0,
+		}),
+	);
+}
 
 export function getNextAvailableDates({
 	startDate,
@@ -14,22 +36,24 @@ export function getNextAvailableDates({
 	presalePickupWeekDays = [],
 	endDate = null,
 	isDaysCadence = false,
+	platform = PLATFORM.WEB,
 }: GetNextAvailableDatesParams): Date[] {
-	const zonedStartTime = getZonedTime(startDate, findTimeZone(timeZone));
-	const startOfDayInZone = new Date(
-		getUnixTime({
-			...zonedStartTime,
-			hours: 0,
-			minutes: 0,
-			seconds: 0,
-			milliseconds: 0,
-		}),
-	);
+	const startOfDayInZone = getStartOfDayInZone(startDate, timeZone, platform);
+	const zonedStartTime = getZonedTime(startOfDayInZone, findTimeZone(timeZone));
 
 	const dates: Date[] = [];
 
 	for (
-		let date = new Date(startOfDayInZone.getTime()), maxRuns = 0;
+		let date = new Date(
+				getUnixTime({
+					...zonedStartTime,
+					hours: 0,
+					minutes: 0,
+					seconds: 0,
+					milliseconds: 0,
+				}),
+			),
+			maxRuns = 0;
 		dates.length < datesCount && maxRuns <= 30;
 		date = addDaysInTimeZone(date, 1, timeZone), maxRuns += 1
 	) {
@@ -40,6 +64,10 @@ export function getNextAvailableDates({
 
 		if (endDate && isAfter(date, endDate)) {
 			break;
+		}
+
+		if (date.getTime() < getUnixTime(zonedStartTime)) {
+			continue;
 		}
 
 		const zonedDate = getZonedTime(date, findTimeZone(timeZone));

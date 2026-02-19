@@ -3,6 +3,7 @@ export {
 	DEFAULT_GAP_IN_MINUTES,
 	DEFAULT_PREP_TIME_IN_MINUTES,
 	FULFILLMENT_TYPES,
+	PLATFORM,
 	PrepTimeBehaviour,
 } from "./constants";
 export { getSchedules } from "./schedule/get-schedules";

@@ -13,7 +13,7 @@ import type {
 } from "./business-hours";
 import type { BusyTimeItem } from "./common";
 import type { FulfillmentPreference, LocationLike } from "./location";
-import type { FulfillmentSchedule } from "./schedule";
+import type { FulfillmentSchedule, Platform } from "./schedule";
 
 // ── High-level input objects ────────────────────────────────────────────────
 
@@ -83,6 +83,8 @@ export interface GetSchedulesParams {
 	prepTimeSettings: PrepTimeSettings;
 	currentLocation: LocationLike;
 	isCateringFlow?: boolean;
+	/** Platform for timezone handling in next-available-date logic. Default "web". */
+	platform?: Platform;
 }
 
 export interface GetSchedulesResult {

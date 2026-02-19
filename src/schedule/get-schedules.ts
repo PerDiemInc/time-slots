@@ -2,6 +2,7 @@ import { differenceInDays } from "date-fns";
 import {
 	DEFAULT_TIMEZONE,
 	FULFILLMENT_TYPES,
+	PLATFORM,
 	PREP_TIME_CADENCE,
 } from "../constants";
 import type {
@@ -151,6 +152,7 @@ export function getSchedules({
 	prepTimeSettings,
 	currentLocation,
 	isCateringFlow = false,
+	platform = PLATFORM.WEB,
 }: GetSchedulesParams): GetSchedulesResult {
 	const {
 		isAsapOrders,
@@ -211,6 +213,7 @@ export function getSchedules({
 				daysCount: 7,
 				preSaleDates: weeklyPickupDates.map((d) => d.getDate()),
 				presalePickupWeekDays: weeklyPreSaleConfig.pickup_days,
+				platform,
 			});
 
 			return {
@@ -245,6 +248,7 @@ export function getSchedules({
 			: !isAsapOrders && !isSameDayOrders
 				? daysCount
 				: 1,
+		platform,
 
 		...(!isPreSaleEnabled && {
 			weekDayPrepTimes,

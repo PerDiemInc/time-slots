@@ -34,3 +34,12 @@ export const PREP_TIME_CADENCE = {
 
 export type PrepTimeCadence =
 	(typeof PREP_TIME_CADENCE)[keyof typeof PREP_TIME_CADENCE];
+
+/**
+ * Platform for timezone handling (web uses @date-fns/tz; ios/android use timezone-support).
+ */
+export const PLATFORM = {
+	WEB: "web",
+	IOS: "ios",
+	ANDROID: "android",
+} as const;

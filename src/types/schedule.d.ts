@@ -1,3 +1,4 @@
+import type { PLATFORM } from "../constants";
 import type {
 	BusinessHour,
 	BusinessHoursOverrideOutput,
@@ -36,7 +37,7 @@ export interface GenerateScheduleParams {
 	gapInMinutes?: number;
 	prepTimeCadence?: PrepTimeCadence;
 }
-
+export type Platform = (typeof PLATFORM)[keyof typeof PLATFORM];
 export interface GetNextAvailableDatesParams {
 	startDate: Date;
 	timeZone: string;
@@ -47,6 +48,8 @@ export interface GetNextAvailableDatesParams {
 	presalePickupWeekDays?: number[];
 	endDate?: Date | null;
 	isDaysCadence?: boolean;
+	/** Platform for timezone handling. Web uses @date-fns/tz; ios/android use timezone-support. Default "web". */
+	platform?: Platform;
 }
 
 export interface GenerateLocationFulfillmentScheduleParams {
@@ -69,6 +72,7 @@ export interface GenerateLocationFulfillmentScheduleParams {
 	preSaleDates?: number[];
 	presalePickupWeekDays?: number[];
 	endDate?: Date | null;
+	platform?: Platform;
 }
 
 export interface GetOpeningClosingTimeOnDateParams {

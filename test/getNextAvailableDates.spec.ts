@@ -261,8 +261,9 @@ describe("getNextAvailableDates", () => {
 				new Date("2025-03-14T04:00:00.000Z"),
 				new Date("2025-03-15T04:00:00.000Z"),
 			];
+			// With platform "web" (@date-fns/tz), start of day Mar 9 is 05:00Z
 			const includedExpectedPostDst = [
-				new Date("2025-03-09T04:00:00.000Z"),
+				new Date("2025-03-09T05:00:00.000Z"),
 				new Date("2025-03-10T04:00:00.000Z"),
 				new Date("2025-03-11T04:00:00.000Z"),
 				new Date("2025-03-12T04:00:00.000Z"),
