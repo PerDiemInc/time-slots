@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PREP_TIME_CADENCE } from "../src/constants";
 import { getSchedules } from "../src/schedule/get-schedules";
 import type {
 	GetSchedulesParams,
@@ -50,7 +51,7 @@ function makePrepTimeSettings(
 		gapInMinutes: 15,
 		busyTimes: {},
 		prepTimeFrequency: 0,
-		prepTimeCadence: "minutes",
+		prepTimeCadence: PREP_TIME_CADENCE.MINUTE,
 		...overrides,
 	};
 }
@@ -95,7 +96,7 @@ describe("preptimeByMinutes", () => {
 					5: 20,
 					6: 0,
 				},
-				prepTimeCadence: "minutes",
+				prepTimeCadence: PREP_TIME_CADENCE.MINUTE,
 			}),
 		);
 
@@ -121,7 +122,7 @@ describe("preptimeByMinutes", () => {
 		const { schedule } = callGetSchedules(
 			makePrepTimeSettings({
 				weekDayPrepTimes: { 1: 150 },
-				prepTimeCadence: "minutes",
+				prepTimeCadence: PREP_TIME_CADENCE.MINUTE,
 			}),
 			location,
 		);

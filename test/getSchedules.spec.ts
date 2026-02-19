@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { PREP_TIME_CADENCE } from "../src/constants";
 import { getSchedules } from "../src/schedule/get-schedules";
 import type {
 	GetSchedulesParams,
@@ -53,7 +54,7 @@ function makePrepTimeSettings(
 		gapInMinutes: 15,
 		busyTimes: {},
 		prepTimeFrequency: 0,
-		prepTimeCadence: "minutes",
+		prepTimeCadence: PREP_TIME_CADENCE.MINUTE,
 		...overrides,
 	};
 }

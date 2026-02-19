@@ -168,8 +168,6 @@ export function getSchedules({
 		fulfillmentPreference,
 		currentLocation?.timezone,
 	);
-	console.log("prepTimeSettings", resolvedPrepTime);
-
 	const {
 		gapInMinutes,
 		busyTimes: busyTimesByLocationId,

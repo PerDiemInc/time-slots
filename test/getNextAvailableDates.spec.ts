@@ -13,8 +13,36 @@ const allDaysBusinessHours = [
 
 describe("getNextAvailableDates", () => {
 	describe("When passing 2023-09-29T02:00:00.000Z date and timezone as America/Halifax", () => {
-		it("should skip Sep 28 (past closing in Halifax) and return next 7 days", () => {
+		it("should return 7 days starting from start date day in zone (no skip when isDaysCadence not set)", () => {
 			const date = new Date("2023-09-29T02:00:00.000Z");
+
+			const expectedArray = [
+				new Date("2023-09-28T03:00:00.000Z"),
+				new Date("2023-09-29T03:00:00.000Z"),
+				new Date("2023-09-30T03:00:00.000Z"),
+				new Date("2023-10-01T03:00:00.000Z"),
+				new Date("2023-10-02T03:00:00.000Z"),
+				new Date("2023-10-03T03:00:00.000Z"),
+				new Date("2023-10-04T03:00:00.000Z"),
+			];
+
+			const generatedArray = getNextAvailableDates({
+				startDate: date,
+				datesCount: 7,
+				timeZone: "America/Halifax",
+				businessHours: allDaysBusinessHours,
+			});
+
+			generatedArray.forEach((el, index) => {
+				expect(el).toEqual(expectedArray[index]);
+				expect(el).toEqual(expect.any(Date));
+			});
+		});
+	});
+
+	describe("When isDaysCadence is true", () => {
+		it("should skip current date when start time is past closing in zone and return next 7 days", () => {
+			const date = new Date("2023-09-29T02:00:00.000Z"); // Past closing on Sep 28 in Halifax
 
 			const expectedArray = [
 				new Date("2023-09-29T03:00:00.000Z"),
@@ -31,6 +59,7 @@ describe("getNextAvailableDates", () => {
 				datesCount: 7,
 				timeZone: "America/Halifax",
 				businessHours: allDaysBusinessHours,
+				isDaysCadence: true,
 			});
 
 			generatedArray.forEach((el, index) => {
@@ -97,17 +126,17 @@ describe("getNextAvailableDates", () => {
 	});
 
 	describe("When passing 2023-09-27T18:00:00.000Z date and timezone as Asia/Karachi", () => {
-		it("should skip Sep 27 (past closing in Karachi) and return next 7 days", () => {
+		it("should return 7 days starting from start date day in zone (no skip when isDaysCadence not set)", () => {
 			const date = new Date("2023-09-27T18:00:00.000Z");
 
 			const expectedArray = [
+				new Date("2023-09-26T19:00:00.000Z"),
 				new Date("2023-09-27T19:00:00.000Z"),
 				new Date("2023-09-28T19:00:00.000Z"),
 				new Date("2023-09-29T19:00:00.000Z"),
 				new Date("2023-09-30T19:00:00.000Z"),
 				new Date("2023-10-01T19:00:00.000Z"),
 				new Date("2023-10-02T19:00:00.000Z"),
-				new Date("2023-10-03T19:00:00.000Z"),
 			];
 
 			const generatedArray = getNextAvailableDates({
@@ -125,17 +154,17 @@ describe("getNextAvailableDates", () => {
 	});
 
 	describe("When passing 2025-03-09T04:00:00.000Z that is previous day in New York (8th of March) and timezone as America/New_York", () => {
-		it("should skip Mar 8 (past closing in NY) and return next 7 days across DST", () => {
+		it("should return 7 days starting from start date day in zone (no skip when isDaysCadence not set)", () => {
 			const date = new Date("2025-03-09T04:00:00.000Z");
 
 			const expectedArray = [
+				new Date("2025-03-08T05:00:00.000Z"),
 				new Date("2025-03-09T05:00:00.000Z"),
 				new Date("2025-03-10T04:00:00.000Z"),
 				new Date("2025-03-11T04:00:00.000Z"),
 				new Date("2025-03-12T04:00:00.000Z"),
 				new Date("2025-03-13T04:00:00.000Z"),
 				new Date("2025-03-14T04:00:00.000Z"),
-				new Date("2025-03-15T04:00:00.000Z"),
 			];
 
 			const generatedArray = getNextAvailableDates({
@@ -153,7 +182,7 @@ describe("getNextAvailableDates", () => {
 	});
 
 	describe("When passing 2025-02-09T05:00:00.000Z through 2025-02-10T03:00:00.000Z and timezone as America/New_York", () => {
-		it("should include Feb 9 for start times before closing (01:00Z), skip it after", () => {
+		it("should include Feb 9 for all start times in zone when isDaysCadence not set (no skip after closing)", () => {
 			const includedExpected = [
 				new Date("2025-02-09T05:00:00.000Z"),
 				new Date("2025-02-10T05:00:00.000Z"),
@@ -162,16 +191,6 @@ describe("getNextAvailableDates", () => {
 				new Date("2025-02-13T05:00:00.000Z"),
 				new Date("2025-02-14T05:00:00.000Z"),
 				new Date("2025-02-15T05:00:00.000Z"),
-			];
-
-			const skippedExpected = [
-				new Date("2025-02-10T05:00:00.000Z"),
-				new Date("2025-02-11T05:00:00.000Z"),
-				new Date("2025-02-12T05:00:00.000Z"),
-				new Date("2025-02-13T05:00:00.000Z"),
-				new Date("2025-02-14T05:00:00.000Z"),
-				new Date("2025-02-15T05:00:00.000Z"),
-				new Date("2025-02-16T05:00:00.000Z"),
 			];
 
 			const beforeClosing = [
@@ -224,7 +243,7 @@ describe("getNextAvailableDates", () => {
 					businessHours: allDaysBusinessHours,
 				});
 				generatedArray.forEach((el, index) => {
-					expect(el).toEqual(skippedExpected[index]);
+					expect(el).toEqual(includedExpected[index]);
 					expect(el).toEqual(expect.any(Date));
 				});
 			}
@@ -232,8 +251,8 @@ describe("getNextAvailableDates", () => {
 	});
 
 	describe("When passing 2025-03-09T05:00:00.000Z through 2025-03-10T03:00:00.000Z and timezone as America/New_York (DST transition)", () => {
-		it("should include Mar 9 only for pre-DST start times (05:00Z-06:00Z), skip it once EDT kicks in", () => {
-			const includedExpected = [
+		it("should include Mar 9 for all start times when isDaysCadence not set (no skip after EDT)", () => {
+			const includedExpectedPreDst = [
 				new Date("2025-03-09T05:00:00.000Z"),
 				new Date("2025-03-10T04:00:00.000Z"),
 				new Date("2025-03-11T04:00:00.000Z"),
@@ -242,15 +261,14 @@ describe("getNextAvailableDates", () => {
 				new Date("2025-03-14T04:00:00.000Z"),
 				new Date("2025-03-15T04:00:00.000Z"),
 			];
-
-			const skippedExpected = [
+			const includedExpectedPostDst = [
+				new Date("2025-03-09T04:00:00.000Z"),
 				new Date("2025-03-10T04:00:00.000Z"),
 				new Date("2025-03-11T04:00:00.000Z"),
 				new Date("2025-03-12T04:00:00.000Z"),
 				new Date("2025-03-13T04:00:00.000Z"),
 				new Date("2025-03-14T04:00:00.000Z"),
 				new Date("2025-03-15T04:00:00.000Z"),
-				new Date("2025-03-16T04:00:00.000Z"),
 			];
 
 			const preDst = [
@@ -290,7 +308,7 @@ describe("getNextAvailableDates", () => {
 					businessHours: allDaysBusinessHours,
 				});
 				generatedArray.forEach((el, index) => {
-					expect(el).toEqual(includedExpected[index]);
+					expect(el).toEqual(includedExpectedPreDst[index]);
 					expect(el).toEqual(expect.any(Date));
 				});
 			}
@@ -303,7 +321,7 @@ describe("getNextAvailableDates", () => {
 					businessHours: allDaysBusinessHours,
 				});
 				generatedArray.forEach((el, index) => {
-					expect(el).toEqual(skippedExpected[index]);
+					expect(el).toEqual(includedExpectedPostDst[index]);
 					expect(el).toEqual(expect.any(Date));
 				});
 			}
@@ -311,17 +329,17 @@ describe("getNextAvailableDates", () => {
 	});
 
 	describe("When passing 2023-09-27T18:00:00.000Z date with closed business hours overrides", () => {
-		it("should skip Sep 27 (past closing) and Sep 28, Oct 1 (overrides) then return next 7 dates", () => {
+		it("should skip Sep 28, Oct 1 (overrides) and return 7 dates from start day in zone", () => {
 			const date = new Date("2023-09-27T18:00:00.000Z");
 
 			const expectedArray = [
+				new Date("2023-09-26T19:00:00.000Z"),
 				new Date("2023-09-28T19:00:00.000Z"),
 				new Date("2023-09-29T19:00:00.000Z"),
 				new Date("2023-10-01T19:00:00.000Z"),
 				new Date("2023-10-02T19:00:00.000Z"),
 				new Date("2023-10-03T19:00:00.000Z"),
 				new Date("2023-10-04T19:00:00.000Z"),
-				new Date("2023-10-05T19:00:00.000Z"),
 			];
 
 			const generatedArray = getNextAvailableDates({
@@ -452,17 +470,17 @@ describe("getNextAvailableDates", () => {
 	});
 
 	describe("When passing 2025-10-29T02:00:00.000Z and timezone as America/New_York (fall back DST)", () => {
-		it("should skip Oct 28 (past closing in NY) and return next 7 days across DST fall-back", () => {
+		it("should return 7 days starting from start date day in zone (no skip when isDaysCadence not set)", () => {
 			const date = new Date("2025-10-29T02:00:00.000Z");
 
 			const expectedArray = [
+				new Date("2025-10-28T04:00:00.000Z"),
 				new Date("2025-10-29T04:00:00.000Z"),
 				new Date("2025-10-30T04:00:00.000Z"),
 				new Date("2025-10-31T04:00:00.000Z"),
 				new Date("2025-11-01T04:00:00.000Z"),
 				new Date("2025-11-02T04:00:00.000Z"),
 				new Date("2025-11-03T05:00:00.000Z"),
-				new Date("2025-11-04T05:00:00.000Z"),
 			];
 
 			const generatedArray = getNextAvailableDates({

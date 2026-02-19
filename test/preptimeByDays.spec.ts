@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PREP_TIME_CADENCE } from "../src/constants";
 import { getSchedules } from "../src/schedule/get-schedules";
 import type {
 	GetSchedulesParams,
@@ -50,7 +51,7 @@ function makePrepTimeSettings(
 		gapInMinutes: 15,
 		busyTimes: {},
 		prepTimeFrequency: 0,
-		prepTimeCadence: "minutes",
+		prepTimeCadence: PREP_TIME_CADENCE.MINUTE,
 		...overrides,
 	};
 }
@@ -85,7 +86,7 @@ describe("preptimeByDays", () => {
 		vi.setSystemTime(new Date("2025-01-01T17:55:00.000Z"));
 
 		const { weekDayPrepTimes: _w, ...daysSettings } = makePrepTimeSettings({
-			prepTimeCadence: "days",
+			prepTimeCadence: PREP_TIME_CADENCE.DAY,
 			prepTimeFrequency: 2,
 		});
 		const { schedule } = callGetSchedules(daysSettings as PrepTimeSettings);
@@ -102,7 +103,7 @@ describe("preptimeByDays", () => {
 		vi.setSystemTime(new Date("2025-01-02T08:00:00.000Z"));
 
 		const { weekDayPrepTimes: _w, ...daysSettings } = makePrepTimeSettings({
-			prepTimeCadence: "days",
+			prepTimeCadence: PREP_TIME_CADENCE.DAY,
 			prepTimeFrequency: 1,
 		});
 		const { schedule } = callGetSchedules(daysSettings as PrepTimeSettings);

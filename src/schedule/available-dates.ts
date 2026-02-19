@@ -61,7 +61,7 @@ export function getNextAvailableDates({
 		const todayBusinessHours = businessHours.filter(
 			(bh) => bh.day === dayOfWeek,
 		);
-		// If days cadence,  we dont need to skip date even if it is after the last shift end time
+		// If days cadence, we dont need to skip date even if it is after the last shift end time
 		if (isDaysCadence) {
 			const lastShiftEndTime = todayBusinessHours.at(-1)?.endTime;
 			const shiftEndDate = lastShiftEndTime
