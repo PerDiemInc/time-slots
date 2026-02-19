@@ -7,6 +7,8 @@ export type {
 export type { BusyTimeItem } from "./common";
 export type {
 	CartItem,
+	CateringPrepTimeResult,
+	GetCateringPrepTimeParams,
 	GetSchedulesParams,
 	GetSchedulesResult,
 	InitScheduleParams,

@@ -46,6 +46,7 @@ export interface GetNextAvailableDatesParams {
 	preSaleDates?: number[];
 	presalePickupWeekDays?: number[];
 	endDate?: Date | null;
+	isDaysCadence?: boolean;
 }
 
 export interface GenerateLocationFulfillmentScheduleParams {

@@ -8,6 +8,7 @@ export {
 export { getSchedules } from "./schedule/get-schedules";
 export * from "./types";
 export { getLocationsBusinessHoursOverrides } from "./utils/business-hours";
+export { getCateringPrepTimeConfig } from "./utils/catering";
 export {
 	getPreSalePickupDates,
 	isTodayInTimeZone,

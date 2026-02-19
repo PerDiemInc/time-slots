@@ -1,16 +1,16 @@
 {
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Launch Program",
-      "skipFiles": ["<node_internals>/**"],
-      "runtimeExecutable": "tsx",
-      "runtimeArgs": [],
-      "console": "integratedTerminal",
-      "envFile": "${workspaceFolder}/.env",
-      "program": "${workspaceFolder}/src/index.ts"
-    }
-  ]
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Launch Program",
+			"skipFiles": ["<node_internals>/**"],
+			"runtimeExecutable": "tsx",
+			"runtimeArgs": [],
+			"console": "integratedTerminal",
+			"envFile": "${workspaceFolder}/.env",
+			"program": "${workspaceFolder}/src/index.ts"
+		}
+	]
 }

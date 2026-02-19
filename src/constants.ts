@@ -7,6 +7,7 @@ export const FULFILLMENT_TYPES = {
 	CURBSIDE: "CURBSIDE",
 } as const;
 
+export const DEFAULT_TIMEZONE = "America/New_York";
 export type FulfillmentType =
 	(typeof FULFILLMENT_TYPES)[keyof typeof FULFILLMENT_TYPES];
 
@@ -26,9 +27,9 @@ export type PrepTimeBehaviourType =
 	(typeof PrepTimeBehaviour)[keyof typeof PrepTimeBehaviour];
 
 export const PREP_TIME_CADENCE = {
-	MINUTES: "minutes",
-	DAYS: "days",
-	HOURS: "hours",
+	MINUTE: "minute",
+	DAY: "day",
+	HOUR: "hour",
 } as const;
 
 export type PrepTimeCadence =

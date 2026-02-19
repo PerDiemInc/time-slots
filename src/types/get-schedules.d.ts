@@ -1,4 +1,12 @@
 import type { PrepTimeCadence } from "../constants";
+
+export interface GetCateringPrepTimeParams {
+	items: CartItem[];
+	prepTimeCadence?: PrepTimeCadence;
+	prepTimeFrequency?: number;
+	timezone?: string;
+}
+
 import type {
 	BusinessHoursOverrideInput,
 	BusinessHoursOverrideOutput,
@@ -30,14 +38,30 @@ export interface StoreConfig {
 	max_future_order_days?: number;
 	businessHoursOverrides: BusinessHoursOverrideInput[];
 	preSaleConfig?: PreSaleConfig;
-	weeklyPreSaleConfig: WeeklyPreSaleConfig;
+	weeklyPreSaleConfig?: WeeklyPreSaleConfig;
 }
-
+export type CateringServiceType = {
+	min_quantity: number;
+	max_quantity: number;
+	serve_count: number;
+	prep_time: {
+		cadence: PrepTimeCadence;
+		frequency: number;
+	};
+};
 export interface CartItem {
 	preSale?: boolean;
 	weeklyPreSale?: boolean;
 	internalCategoryId?: string;
+	cateringService?: CateringServiceType;
 }
+export interface CateringPrepTimeResult {
+	prepTimeCadence: PrepTimeCadence;
+	prepTimeFrequency: number;
+	/** Only set when prepTimeCadence is not DAY (e.g. HOUR). */
+	weekDayPrepTimes?: Record<number, number>;
+}
+
 export interface PrepTimeSettings {
 	prepTimeInMinutes: number;
 	weekDayPrepTimes: Record<number, number>;
@@ -45,6 +69,8 @@ export interface PrepTimeSettings {
 	busyTimes: Record<string, BusyTimeItem[]>;
 	prepTimeFrequency: number;
 	prepTimeCadence: PrepTimeCadence;
+	/** When fulfillment is DELIVERY, added to each weekday prep time so slots reflect when order is received. */
+	estimatedDeliveryMinutes?: number;
 }
 
 // ── getSchedules params / result ────────────────────────────────────────────
@@ -56,6 +82,7 @@ export interface GetSchedulesParams {
 	fulfillmentPreference: FulfillmentPreference;
 	prepTimeSettings: PrepTimeSettings;
 	currentLocation: LocationLike;
+	isCateringFlow?: boolean;
 }
 
 export interface GetSchedulesResult {

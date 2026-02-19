@@ -95,7 +95,7 @@ export function generateSchedule({
 	gapInMinutes = 15,
 	prepTimeCadence = null,
 }: GenerateScheduleParams): DaySchedule[] {
-	const isMinutesCadence = prepTimeCadence === PREP_TIME_CADENCE.MINUTES;
+	const isMinutesCadence = prepTimeCadence === PREP_TIME_CADENCE.MINUTE;
 	let shiftStartDateWithPrepTime: Date | null = null;
 	return dates
 		.map((date, index) => {

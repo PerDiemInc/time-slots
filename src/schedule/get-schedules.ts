@@ -1,13 +1,19 @@
 import { differenceInDays } from "date-fns";
-import { PREP_TIME_CADENCE } from "../constants";
+import {
+	DEFAULT_TIMEZONE,
+	FULFILLMENT_TYPES,
+	PREP_TIME_CADENCE,
+} from "../constants";
 import type {
 	CartItem,
 	FulfillmentSchedule,
 	GetSchedulesParams,
 	GetSchedulesResult,
+	PrepTimeSettings,
 	PreSaleConfig,
 } from "../types";
 import { getLocationsBusinessHoursOverrides } from "../utils/business-hours";
+import { getCateringPrepTimeConfig } from "../utils/catering";
 import { getPreSalePickupDates, overrideTimeZoneOnUTC } from "../utils/date";
 import { filterBusyTimesFromSchedule } from "../utils/schedule-filter";
 import { generateLocationFulfillmentSchedule } from "./location";
@@ -72,6 +78,68 @@ function resolveStartDate(
 	}
 	return new Date();
 }
+const WEEKDAY_KEYS = [0, 1, 2, 3, 4, 5, 6] as const;
+
+function addEstimatedDeliveryToWeekDays(
+	weekDayPrepTimes: Record<number, number>,
+	estimatedDeliveryMinutes: number,
+): Record<number, number> {
+	const result: Record<number, number> = {};
+	for (const day of WEEKDAY_KEYS) {
+		result[day] = (weekDayPrepTimes[day] ?? 0) + estimatedDeliveryMinutes;
+	}
+	return result;
+}
+
+/**
+ * Resolves prep time config: for catering flow uses cart-derived cadence/frequency;
+ * when fulfillment is DELIVERY, adds estimatedDeliveryMinutes to all weekday prep times.
+ */
+function resolvePrepTimeConfig(
+	prepTimeSettings: PrepTimeSettings,
+	cartItems: CartItem[],
+	isCateringFlow: boolean,
+	fulfillmentPreference: "PICKUP" | "DELIVERY" | "CURBSIDE",
+	timezone: string = DEFAULT_TIMEZONE,
+): PrepTimeSettings {
+	let resolved: PrepTimeSettings;
+
+	if (!isCateringFlow) {
+		const isDayCadence =
+			prepTimeSettings.prepTimeCadence === PREP_TIME_CADENCE.DAY;
+		resolved = {
+			...prepTimeSettings,
+			...(isDayCadence && { weekDayPrepTimes: {} }),
+		};
+	} else {
+		const cateringPrepTimeConfig = getCateringPrepTimeConfig({
+			items: cartItems,
+			prepTimeCadence: prepTimeSettings.prepTimeCadence,
+			prepTimeFrequency: prepTimeSettings.prepTimeFrequency,
+			timezone,
+		});
+		resolved = {
+			...prepTimeSettings,
+			...cateringPrepTimeConfig,
+		};
+	}
+	const { estimatedDeliveryMinutes = 0 } = prepTimeSettings;
+	if (
+		fulfillmentPreference === FULFILLMENT_TYPES.DELIVERY &&
+		estimatedDeliveryMinutes > 0
+	) {
+		const baseWeekDays = resolved.weekDayPrepTimes ?? {};
+		resolved = {
+			...resolved,
+			weekDayPrepTimes: addEstimatedDeliveryToWeekDays(
+				baseWeekDays,
+				prepTimeSettings.estimatedDeliveryMinutes ?? 0,
+			),
+		};
+	}
+
+	return resolved;
+}
 
 // ── Main ────────────────────────────────────────────────────────────────────
 
@@ -82,6 +150,7 @@ export function getSchedules({
 	fulfillmentPreference,
 	prepTimeSettings,
 	currentLocation,
+	isCateringFlow = false,
 }: GetSchedulesParams): GetSchedulesResult {
 	const {
 		isAsapOrders,
@@ -90,20 +159,25 @@ export function getSchedules({
 		weeklyPreSaleConfig,
 		preSaleConfig,
 	} = store;
-	console.log("prepTimeSettings", prepTimeSettings);
 
 	const cart = deriveCartInfo(cartItems);
+	const resolvedPrepTime = resolvePrepTimeConfig(
+		prepTimeSettings,
+		cartItems,
+		isCateringFlow,
+		fulfillmentPreference,
+		currentLocation?.timezone,
+	);
+	console.log("prepTimeSettings", resolvedPrepTime);
+
 	const {
 		gapInMinutes,
 		busyTimes: busyTimesByLocationId,
 		prepTimeFrequency,
 		prepTimeCadence,
-	} = prepTimeSettings;
+		weekDayPrepTimes,
+	} = resolvedPrepTime;
 
-	const weekDayPrepTimes =
-		prepTimeCadence === PREP_TIME_CADENCE.DAYS
-			? {}
-			: prepTimeSettings?.weekDayPrepTimes;
 	const busyTimes = busyTimesByLocationId?.[currentLocation.location_id] ?? [];
 
 	const businessHoursOverrides =
@@ -119,10 +193,14 @@ export function getSchedules({
 		});
 
 	// ── Weekly pre-sale path (early return) ─────────────────────────────────
-	if (cart.hasWeeklyPreSaleItem && weeklyPreSaleConfig.active) {
+	if (
+		cart.hasWeeklyPreSaleItem &&
+		weeklyPreSaleConfig?.active &&
+		!isCateringFlow
+	) {
 		const weeklyPickupDates = getPreSalePickupDates(
-			weeklyPreSaleConfig.pickup_days,
-			weeklyPreSaleConfig.ordering_days,
+			weeklyPreSaleConfig?.pickup_days,
+			weeklyPreSaleConfig?.ordering_days,
 		);
 
 		if (weeklyPickupDates.length > 0) {
@@ -146,7 +224,7 @@ export function getSchedules({
 
 	// ── Main schedule path ──────────────────────────────────────────────────
 	const isPreSaleEnabled =
-		(preSaleConfig?.active ?? false) && cart.hasPreSaleItem;
+		(preSaleConfig?.active ?? false) && cart.hasPreSaleItem && !isCateringFlow;
 	const preSaleDates = resolvePreSaleDates(
 		preSaleConfig,
 		currentLocation.timezone,

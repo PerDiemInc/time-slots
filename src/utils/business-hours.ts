@@ -56,9 +56,19 @@ export function getLocationsBusinessHoursOverrides(
 	return result;
 }
 
+export const isLocationCateringEnabled = (
+	location: LocationLike | undefined,
+): boolean => {
+	if (!location) return false;
+	return (
+		!!location?.catering?.enabled && location?.catering?.enabled !== "false"
+	);
+};
+
 export function getLocationBusinessHoursForFulfillment(
 	location: LocationLike,
 	fulfillmentPreference: FulfillmentPreference,
+	isCatering = false,
 ): BusinessHour[] {
 	const fulfillmentBusinessHours: Record<
 		string,
@@ -71,13 +81,40 @@ export function getLocationBusinessHoursForFulfillment(
 			: location?.curbside_hours?.times,
 	};
 
+	const cateringBusinessTimings: Partial<
+		Record<FulfillmentPreference, { start_time: string; end_time: string }>
+	> = {
+		[FULFILLMENT_TYPES.PICKUP]: location?.catering?.pickup,
+		[FULFILLMENT_TYPES.DELIVERY]: location?.catering?.delivery,
+	};
+
 	const businessHours = fulfillmentBusinessHours[fulfillmentPreference];
 
+	const cateringBusinessTiming =
+		isCatering && isLocationCateringEnabled(location)
+			? cateringBusinessTimings[fulfillmentPreference]
+			: null;
+
+	if (isCatering && !cateringBusinessTiming) {
+		//if catering is enabled but no business hours are set, return empty arrayif
+		return [];
+	}
+
 	return (
-		businessHours?.map((bh) => ({
-			day: bh.day,
-			startTime: bh.start_time,
-			endTime: bh.end_time,
-		})) ?? []
+		businessHours?.map((businessHour) => {
+			if (isCatering && cateringBusinessTiming) {
+				//if catering is enabled and catering business hours are set, return catering business hours
+				return {
+					day: businessHour.day,
+					startTime: cateringBusinessTiming.start_time,
+					endTime: cateringBusinessTiming.end_time,
+				};
+			}
+			return {
+				day: businessHour.day,
+				startTime: businessHour.start_time,
+				endTime: businessHour.end_time,
+			};
+		}) ?? []
 	);
 }

@@ -13,6 +13,7 @@ export function getNextAvailableDates({
 	preSaleDates = [],
 	presalePickupWeekDays = [],
 	endDate = null,
+	isDaysCadence = false,
 }: GetNextAvailableDatesParams): Date[] {
 	const zonedStartTime = getZonedTime(startDate, findTimeZone(timeZone));
 	const startOfDayInZone = new Date(
@@ -60,15 +61,18 @@ export function getNextAvailableDates({
 		const todayBusinessHours = businessHours.filter(
 			(bh) => bh.day === dayOfWeek,
 		);
-		const lastShiftEndTime = todayBusinessHours?.at(-1)?.endTime;
-		const shiftEndDate = lastShiftEndTime
-			? setHmOnDate(date, lastShiftEndTime, timeZone)
-			: null;
-		/**
-		 * Skip current date if current time is after the last shift end time
-		 */
-		if (shiftEndDate && isAfter(startDate, shiftEndDate)) {
-			continue;
+		// If days cadence,  we dont need to skip date even if it is after the last shift end time
+		if (isDaysCadence) {
+			const lastShiftEndTime = todayBusinessHours.at(-1)?.endTime;
+			const shiftEndDate = lastShiftEndTime
+				? setHmOnDate(date, lastShiftEndTime, timeZone)
+				: null;
+			/**
+			 * Skip current date if current time is after the last shift end time
+			 */
+			if (shiftEndDate && isAfter(startDate, shiftEndDate)) {
+				continue;
+			}
 		}
 		/**
 		 * Skip if today is closed by location hours or by override hours
