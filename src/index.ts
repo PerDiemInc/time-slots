@@ -20,7 +20,4 @@ export {
 	filterBusyTimesFromSchedule,
 	filterMenusFromSchedule,
 } from "./utils/schedule-filter";
-export {
-	getOpeningClosingTime,
-	getOpeningClosingTimeOnDate,
-} from "./utils/store-hours";
+export { getOpeningClosingTime } from "./utils/store-hours";

@@ -4,7 +4,7 @@ import type {
 	BusyTimeItem,
 	FilterBusyTimesFromScheduleParams,
 	FulfillmentSchedule,
-	MenuWithTimes,
+	MenuType,
 } from "../types";
 import { isTimeInRange } from "./time";
 
@@ -95,7 +95,7 @@ export function filterMenusFromSchedule({
 	timeZone,
 }: {
 	schedule?: FulfillmentSchedule;
-	menus?: MenuWithTimes[];
+	menus?: MenuType[];
 	timeZone: string;
 }): FulfillmentSchedule {
 	return schedule
@@ -118,11 +118,21 @@ export function filterMenusFromSchedule({
 					if (dayScheduleConfig.all_day) {
 						return true;
 					}
-
-					return isTimeInRange(dayScheduleConfig, {
-						hours: Number(zonedSlot.hours),
-						minutes: Number(zonedSlot.minutes),
-					});
+					// Only show slot if it falls within the configured time range
+					// Check for null start_time or end_time
+					if (!dayScheduleConfig.start_time || !dayScheduleConfig.end_time) {
+						return false;
+					}
+					return isTimeInRange(
+						{
+							start_time: dayScheduleConfig.start_time,
+							end_time: dayScheduleConfig.end_time,
+						},
+						{
+							hours: Number(zonedSlot.hours),
+							minutes: Number(zonedSlot.minutes),
+						},
+					);
 				});
 			}),
 		}))

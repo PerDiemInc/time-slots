@@ -30,6 +30,5 @@ export type {
 } from "./schedule";
 export type {
 	FilterBusyTimesFromScheduleParams,
-	MenuTimeConfig,
-	MenuWithTimes,
+	MenuType,
 } from "./schedule-filter";
