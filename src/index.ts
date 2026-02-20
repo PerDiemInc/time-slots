@@ -24,3 +24,4 @@ export {
 	getOpeningClosingTime,
 	getOpeningClosingTimeOnDate,
 } from "./utils/store-hours";
+export * as slots from "./slots";
