@@ -261,6 +261,13 @@ export function getSchedules({
 		cart.hasPreSaleItem,
 	);
 
+	const needMultiDay = (!isAsapOrders && !isSameDayOrders) || isCateringFlow;
+	const effectiveDaysCount = isPreSaleEnabled
+		? differenceInDays(preSaleDates.endDate, preSaleDates.startDate) + 1
+		: needMultiDay
+			? daysCount
+			: 1;
+
 	const schedule = generateLocationFulfillmentSchedule({
 		startDate: resolveStartDate(preSaleDates.startDate, cart.hasPreSaleItem),
 		prepTimeFrequency,
@@ -269,13 +276,8 @@ export function getSchedules({
 		fulfillmentPreference,
 		businessHoursOverrides,
 		gapInMinutes,
-		daysCount: isPreSaleEnabled
-			? differenceInDays(preSaleDates.endDate, preSaleDates.startDate) + 1
-			: !isAsapOrders && !isSameDayOrders
-				? daysCount
-				: 1,
+		daysCount: effectiveDaysCount,
 		platform,
-
 		...(!isPreSaleEnabled && {
 			weekDayPrepTimes,
 		}),
