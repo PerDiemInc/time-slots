@@ -2,6 +2,7 @@ import { differenceInDays } from "date-fns";
 import {
 	DEFAULT_TIMEZONE,
 	FULFILLMENT_TYPES,
+	MINUTES_PER_DAY,
 	PLATFORM,
 	PREP_TIME_CADENCE,
 } from "../constants";
@@ -93,6 +94,31 @@ function addEstimatedDeliveryToWeekDays(
 }
 
 /**
+ * Returns prep time cadence and frequency for schedule generation.
+ * If prepTimeCadence and prepTimeFrequency exist on settings (e.g. from catering), returns them.
+ * Otherwise derives from fulfillAtBusinessDayStart and prepTimeInMinutes (days = prepTimeInMinutes / MINUTES_PER_DAY).
+ */
+function getPrepTimeCadenceAndFrequency(
+	settings: PrepTimeSettings,
+): PrepTimeSettings {
+	const hasCadence =
+		settings.prepTimeCadence != null && settings.prepTimeFrequency != null;
+	if (hasCadence) {
+		return settings;
+	}
+	const fulfillAtBusinessDayStart = settings.fulfillAtBusinessDayStart;
+	return {
+		...settings,
+		prepTimeCadence: fulfillAtBusinessDayStart
+			? PREP_TIME_CADENCE.DAY
+			: PREP_TIME_CADENCE.MINUTE,
+		prepTimeFrequency: fulfillAtBusinessDayStart
+			? Math.floor(settings.prepTimeInMinutes / MINUTES_PER_DAY)
+			: (settings?.prepTimeInMinutes ?? 0),
+	};
+}
+
+/**
  * Resolves prep time config: for catering flow uses cart-derived cadence/frequency;
  * when fulfillment is DELIVERY, adds estimatedDeliveryMinutes to all weekday prep times.
  */
@@ -164,7 +190,7 @@ export function getSchedules({
 
 	const cart = deriveCartInfo(cartItems);
 	const resolvedPrepTime = resolvePrepTimeConfig(
-		prepTimeSettings,
+		getPrepTimeCadenceAndFrequency(prepTimeSettings),
 		cartItems,
 		isCateringFlow,
 		fulfillmentPreference,

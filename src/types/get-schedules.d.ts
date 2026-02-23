@@ -67,8 +67,13 @@ export interface PrepTimeSettings {
 	weekDayPrepTimes: Record<number, number>;
 	gapInMinutes: number;
 	busyTimes: Record<string, BusyTimeItem[]>;
-	prepTimeFrequency: number;
-	prepTimeCadence: PrepTimeCadence;
+	prepTimeFrequency?: number;
+	prepTimeCadence?: PrepTimeCadence;
+	/**
+	 * Add fulfillAtBusinessDayStart: when true, first slot of next day is at store opening (e.g. 8am);
+	 * when false, first slot of next day is at same time (e.g. 2:15pm tomorrow). Default false.
+	 */
+	fulfillAtBusinessDayStart: boolean;
 	/** When fulfillment is DELIVERY, added to each weekday prep time so slots reflect when order is received. */
 	estimatedDeliveryMinutes?: number;
 }

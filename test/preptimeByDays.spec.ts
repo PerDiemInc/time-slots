@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PREP_TIME_CADENCE } from "../src/constants";
+import { MINUTES_PER_DAY } from "../src/constants";
 import { getSchedules } from "../src/schedule/get-schedules";
 import type {
 	GetSchedulesParams,
@@ -50,8 +50,7 @@ function makePrepTimeSettings(
 		weekDayPrepTimes: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
 		gapInMinutes: 15,
 		busyTimes: {},
-		prepTimeFrequency: 0,
-		prepTimeCadence: PREP_TIME_CADENCE.MINUTE,
+		fulfillAtBusinessDayStart: false,
 		...overrides,
 	};
 }
@@ -88,8 +87,8 @@ describe("preptimeByDays", () => {
 		vi.useFakeTimers();
 		location = makeLocation();
 		prepTimeSettings = makePrepTimeSettings({
-			prepTimeCadence: PREP_TIME_CADENCE.DAY,
-			prepTimeFrequency: 1,
+			fulfillAtBusinessDayStart: true,
+			prepTimeInMinutes: MINUTES_PER_DAY,
 		});
 	});
 
@@ -413,8 +412,8 @@ describe("preptimeByDays", () => {
 	describe("when prep time is 2 days", () => {
 		beforeEach(() => {
 			prepTimeSettings = makePrepTimeSettings({
-				prepTimeCadence: PREP_TIME_CADENCE.DAY,
-				prepTimeFrequency: 2,
+				fulfillAtBusinessDayStart: true,
+				prepTimeInMinutes: 2 * MINUTES_PER_DAY,
 			});
 		});
 
@@ -466,8 +465,8 @@ describe("preptimeByDays", () => {
 	describe("when prep time is 3 days", () => {
 		beforeEach(() => {
 			prepTimeSettings = makePrepTimeSettings({
-				prepTimeCadence: PREP_TIME_CADENCE.DAY,
-				prepTimeFrequency: 3,
+				fulfillAtBusinessDayStart: true,
+				prepTimeInMinutes: 3 * MINUTES_PER_DAY,
 			});
 		});
 
