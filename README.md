@@ -96,5 +96,5 @@ MIT © Per Diem Subscriptions Inc.
 
 ## Repository
 
-- **Homepage:** [perdiem-pkgs](https://github.com/PerDiemInc/perdiem-pkgs#readme)
-- **Issues:** [perdiem-pkgs/issues](https://github.com/PerDiemInc/perdiem-pkgs/issues)
+- **Homepage:** [time-slots](https://github.com/PerDiemInc/time-slots#readme)
+- **Issues:** [time-slots/issues](https://github.com/PerDiemInc/time-slots/issues)
