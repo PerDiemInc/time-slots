@@ -13,7 +13,7 @@ export type FulfillmentType =
 
 export const DEFAULT_GAP_IN_MINUTES = 15;
 export const DEFAULT_PREP_TIME_IN_MINUTES = 5;
-
+export const MINUTES_PER_DAY = 1440;
 /**
  * Prep time behaviour when computing first available slot.
  */

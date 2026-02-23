@@ -8,6 +8,12 @@ export {
 } from "./constants";
 export { getSchedules } from "./schedule/get-schedules";
 export * from "./types";
+export type {
+	BusinessHour,
+	BusinessHourInput,
+	BusinessHoursOverrideInput,
+	BusinessHoursOverrideOutput,
+} from "./types/business-hours";
 export { getLocationsBusinessHoursOverrides } from "./utils/business-hours";
 export { getCateringPrepTimeConfig } from "./utils/catering";
 export {

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PREP_TIME_CADENCE } from "../src/constants";
 import { getSchedules } from "../src/schedule/get-schedules";
 import type {
 	GetSchedulesParams,
@@ -54,8 +53,7 @@ function makePrepTimeSettings(
 		weekDayPrepTimes: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
 		gapInMinutes: 15,
 		busyTimes: {},
-		prepTimeFrequency: 0,
-		prepTimeCadence: PREP_TIME_CADENCE.MINUTE,
+		fulfillAtBusinessDayStart: false,
 		...overrides,
 	};
 }
@@ -110,7 +108,7 @@ describe("preptimeByMinutes", () => {
 		vi.useFakeTimers();
 		location = makeLocation();
 		prepTimeSettings = makePrepTimeSettings({
-			prepTimeCadence: PREP_TIME_CADENCE.MINUTE,
+			fulfillAtBusinessDayStart: false,
 		});
 	});
 
@@ -122,7 +120,7 @@ describe("preptimeByMinutes", () => {
 	function applyPrepAtOrderDate(orderDate: Date, prepMinutes: number): void {
 		vi.setSystemTime(orderDate);
 		prepTimeSettings = makePrepTimeSettings({
-			prepTimeCadence: PREP_TIME_CADENCE.MINUTE,
+			fulfillAtBusinessDayStart: false,
 			weekDayPrepTimes: prepTimeForOrderDayOnly(orderDate, prepMinutes),
 		});
 	}
@@ -676,7 +674,7 @@ describe("preptimeByMinutes", () => {
 						5: 20,
 						6: 0,
 					},
-					prepTimeCadence: PREP_TIME_CADENCE.MINUTE,
+					fulfillAtBusinessDayStart: false,
 				}),
 			);
 			expect(schedule[0].date.getUTCDate()).toBe(3);
@@ -694,7 +692,7 @@ describe("preptimeByMinutes", () => {
 			const { schedule } = callGetSchedules(
 				makePrepTimeSettings({
 					weekDayPrepTimes: { 1: 150 },
-					prepTimeCadence: PREP_TIME_CADENCE.MINUTE,
+					fulfillAtBusinessDayStart: false,
 				}),
 				location,
 			);

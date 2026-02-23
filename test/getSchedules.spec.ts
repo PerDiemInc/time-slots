@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from "vitest";
-import { PREP_TIME_CADENCE } from "../src/constants";
 import { getSchedules } from "../src/schedule/get-schedules";
 import type {
 	GetSchedulesParams,
@@ -53,8 +52,7 @@ function makePrepTimeSettings(
 		weekDayPrepTimes: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
 		gapInMinutes: 15,
 		busyTimes: {},
-		prepTimeFrequency: 0,
-		prepTimeCadence: PREP_TIME_CADENCE.MINUTE,
+		fulfillAtBusinessDayStart: false,
 		...overrides,
 	};
 }
@@ -106,6 +104,11 @@ describe("getSchedules", () => {
 			const menus = [
 				{
 					menu_id: "1",
+					store_id: "store-1",
+					location_id: null,
+					all_locations: true,
+					display_name: "Test Menu",
+					description: null,
 					times: {
 						"0": {
 							all_day: false,
@@ -113,6 +116,10 @@ describe("getSchedules", () => {
 							end_time: "16:30",
 						},
 					},
+					category_ids: [],
+					last_modified_by: "test",
+					created_at: "2026-01-01T00:00:00.000Z",
+					updated_at: "2026-01-01T00:00:00.000Z",
 				},
 			];
 

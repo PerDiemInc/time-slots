@@ -4,10 +4,10 @@
 
 **Feature:** The system generates a schedule of available **time slots** for ordering (pickup, delivery, or curbside). Each slot is a date + time when the order can be fulfilled.
 
-**Prep time** is how long the store needs before the order is ready.
+**Prep time** is how long the store needs before the order is ready. In the dashboard, when prep is set to **day**, it is treated as day-based below.
 
 - **Prep time by minutes** (e.g. 30 min, 24 hours): First available slot = order time + prep time, but only during store hours. If that falls after closing, the first slot moves to the next open day at opening (or next slot after opening).
-- **Prep time by days** (e.g. 1 day, 2 days): First available slot = the **next open day** after N full prep days, at **opening time** (plus a small buffer, e.g. 5 min). The exact clock time when the user orders today does not change the first slot time—only which day and “at opening.”
+- **Prep time by day** (e.g. 1 day, 2 days): First available slot = the **next open day** after N full prep days, at **opening time** (plus a small buffer, e.g. 5 min). The exact clock time when the user orders today does not change the first slot time—only which day and “at opening.”
 
 **What affects the schedule:**
 

@@ -40,7 +40,7 @@ Builds the schedule for the current location and fulfillment preference.
 | `locations` | List of locations (with `location_id`, `timezone`, and business hours). |
 | `cartItems` | Cart items (used for pre-sale, weekly pre-sale, catering prep time, and category-based filtering). |
 | `fulfillmentPreference` | `"PICKUP"` \| `"DELIVERY"` \| `"CURBSIDE"`. |
-| `prepTimeSettings` | Prep time in minutes, per-weekday overrides, gap, busy times, cadence (minute/hour/day), frequency, and optional delivery buffer. |
+| `prepTimeSettings` | Prep time in minutes, per-weekday overrides, gap, busy times, **fulfillAtBusinessDayStart** (when true, prep is by day; when false, by minutes), and optional delivery buffer. |
 | `currentLocation` | The location to generate the schedule for. |
 | `isCateringFlow` | If `true`, prep time is derived from cart catering config. |
 | `platform` | `"web"` \| `"ios"` \| `"android"` for timezone handling (default `"web"`). |
@@ -52,7 +52,7 @@ Builds the schedule for the current location and fulfillment preference.
 ### Types and constants
 
 - **Fulfillment:** `FULFILLMENT_TYPES`, `FulfillmentType`, `FulfillmentSchedule`, `DaySchedule`.
-- **Prep time:** `PrepTimeBehaviour` (first shift / every shift / roll), `DEFAULT_PREP_TIME_IN_MINUTES`, `DEFAULT_GAP_IN_MINUTES`, `PrepTimeSettings`, `PrepTimeCadence` (minute / hour / day).
+- **Prep time:** `PrepTimeBehaviour` (first shift / every shift / roll), `DEFAULT_PREP_TIME_IN_MINUTES`, `DEFAULT_GAP_IN_MINUTES`, `MINUTES_PER_DAY`, `PrepTimeSettings`, `PrepTimeCadence` (minute / hour / day).
 - **Store / cart:** `StoreConfig`, `PreSaleConfig`, `WeeklyPreSaleConfig`, `CartItem`, `PrepTimeSettings`, `CateringPrepTimeResult`.
 - **Location / hours:** `LocationLike`, `BusinessHour`, `BusinessHoursOverrideInput` / `Output`, `getLocationsBusinessHoursOverrides`, `getOpeningClosingTime`.
 - **Platform:** `PLATFORM` (web, ios, android).
@@ -71,14 +71,15 @@ Internal schedule generation uses **`getNextAvailableDates`**-style logic (timez
 
 ## Prep time (high level)
 
-Prep time can be applied in different ways (see `PrepTimeBehaviour` and `PrepTimeSettings`):
+Prep time is either **by minutes** or **by day** (e.g. in dashboard, when prep is set to “day”, it is treated as day-based).
 
-- **Cadence:** by **minute**, **hour**, or **day** (e.g. “first slot after 2 days”).
-- **Per weekday:** different prep minutes per day via `weekDayPrepTimes`.
+- **By day:** First slot is at **business start** (opening) on the next open day(s). Number of days is derived from `prepTimeInMinutes` (e.g. 1440 min = 1 day).
+- **By minutes:** First slot = order time + prep minutes, within store hours.
+- **Per weekday:** different prep minutes per day via `weekDayPrepTimes` (when not using day-based prep).
 - **Catering:** when `isCateringFlow` is true, cadence and frequency are derived from cart items via `getCateringPrepTimeConfig`.
 - **Delivery:** optional `estimatedDeliveryMinutes` added to weekday prep times for delivery.
 
-Detailed behaviour and edge cases are covered by the test suite. QA-friendly test cases (Given / When / Expected) are in [docs/TEST-CASES.md](docs/TEST-CASES.md).
+QA-friendly test cases (Given / When / Expected) are in [docs/TEST-CASES.md](docs/TEST-CASES.md).
 
 ## Scripts
 
