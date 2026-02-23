@@ -1,6 +1,6 @@
 {
 	"name": "@perdieminc/time-slots",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"description": "Generate time slots for scheduling",
 	"keywords": [
 		"time-slots",
@@ -13,8 +13,8 @@
 	"bugs": {
 		"url": "https://github.com/PerDiemInc/time-slots/issues"
 	},
-	"main": "src/index.ts",
-	"types": "src/index.ts",
+	"main": "lib/index.js",
+	"types": "lib/index.d.ts",
 	"engines": {
 		"node": ">=20"
 	},
@@ -28,6 +28,7 @@
 		"format": "biome check --write .",
 		"clean": "rm -rf lib types coverage",
 		"build": "tsc -b .",
+		"prepublishOnly": "npm run build",
 		"build:watch": "tsc --watch",
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage",
@@ -51,7 +52,7 @@
 		"vitest": "^3.2.4"
 	},
 	"files": [
-		"src"
+		"lib"
 	],
 	"directories": {
 		"lib": "lib",
