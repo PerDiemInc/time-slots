@@ -7,12 +7,12 @@ import type { FulfillmentPreference, LocationLike } from "./location";
 
 export interface DaySchedule {
 	date: Date;
-	originalStoreOpeningTime?: Date | null;
-	originalStoreClosingTime?: Date | null;
-	remainingShifts?: number;
-	openingTime?: Date;
-	closingTime?: Date;
-	firstAvailableSlot?: Date;
+	originalStoreOpeningTime: Date | null;
+	originalStoreClosingTime: Date | null;
+	remainingShifts: number;
+	openingTime: Date;
+	closingTime: Date;
+	firstAvailableSlot: Date;
 	slots: Date[];
 	[key: string]: unknown;
 }

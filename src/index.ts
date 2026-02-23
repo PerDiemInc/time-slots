@@ -7,6 +7,7 @@ export {
 	PrepTimeBehaviour,
 } from "./constants";
 export { getSchedules } from "./schedule/get-schedules";
+export * as slots from "./slots";
 export * from "./types";
 export { getLocationsBusinessHoursOverrides } from "./utils/business-hours";
 export { getCateringPrepTimeConfig } from "./utils/catering";
@@ -24,4 +25,3 @@ export {
 	getOpeningClosingTime,
 	getOpeningClosingTimeOnDate,
 } from "./utils/store-hours";
-export * as slots from "./slots";
