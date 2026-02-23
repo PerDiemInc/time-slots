@@ -13,8 +13,8 @@
 	"bugs": {
 		"url": "https://github.com/PerDiemInc/perdiem-pkgs/issues"
 	},
-	"main": "src/index.ts",
-	"types": "src/index.ts",
+	"main": "lib/index.js",
+	"types": "lib/index.d.ts",
 	"engines": {
 		"node": ">=20"
 	},
@@ -30,15 +30,9 @@
 		"build": "tsc -b .",
 		"build:watch": "tsc --watch",
 		"test": "vitest run",
+		"test:watch": "vitest",
 		"test:coverage": "vitest run --coverage",
-		"coveralls": "vitest run --coverage",
-		"test:watch": "vitest"
-	},
-	"dependencies": {
-		"@date-fns/tz": "^1.4.1",
-		"date-fns": "^4.1.0",
-		"date-fns-tz": "^3.2.0",
-		"timezone-support": "^2.2.0"
+		"coveralls": "vitest run --coverage"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.11",
@@ -51,7 +45,7 @@
 		"vitest": "^3.2.4"
 	},
 	"files": [
-		"src"
+		"lib"
 	],
 	"directories": {
 		"lib": "lib",
@@ -60,5 +54,9 @@
 	"publishConfig": {
 		"access": "public"
 	},
-	"private": true
+	"dependencies": {
+		"@date-fns/tz": "^1.4.1",
+		"date-fns": "^4.1.0",
+		"timezone-support": "^2.2.0"
+	}
 }
