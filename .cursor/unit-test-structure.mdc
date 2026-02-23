@@ -1,0 +1,319 @@
+---
+description: Enforce clean, structured unit test patterns with no repeated payload setup
+globs: ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"]
+alwaysApply: true
+---
+
+# Unit Test Structure Rules
+
+## Core Principles
+
+- **No repeated payload setup** — initialize shared data once in the parent `describe` block
+- **One `describe` per feature/function** — nest inner `describe` blocks for each scenario
+- **Every `describe` uses a "when" statement** — describes the condition being tested
+- **Every `it` uses a "should" statement** — describes the expected outcome
+- **Update payload per scenario inside the inner `describe`** — override only what changes
+- **Pass the updated payload into the function/request inside each `it`** — keep tests self-contained and readable
+
+---
+
+## Structure Template
+
+```ts
+describe('functionName or ComponentName', () => {
+  // ✅ Initialize shared base payload ONCE here
+  let payload: PayloadType;
+
+  beforeEach(() => {
+    payload = {
+      field1: 'default value',
+      field2: 123,
+      field3: true,
+    };
+  });
+
+  describe('when the input is valid', () => {
+    it('should return a success response', () => {
+      const result = myFunction(payload);
+      expect(result.status).toBe('success');
+    });
+
+    it('should include the correct data in the response', () => {
+      const result = myFunction(payload);
+      expect(result.data).toMatchObject({ field1: 'default value' });
+    });
+  });
+
+  describe('when a required field is missing', () => {
+    beforeEach(() => {
+      // ✅ Only override what changes for this scenario
+      payload.field1 = '';
+    });
+
+    it('should throw a validation error', () => {
+      expect(() => myFunction(payload)).toThrow('field1 is required');
+    });
+
+    it('should not call the external service', () => {
+      const spy = jest.spyOn(externalService, 'call');
+      try { myFunction(payload); } catch {}
+      expect(spy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('when the user is unauthorized', () => {
+    beforeEach(() => {
+      payload.authToken = null;
+    });
+
+    it('should return a 401 status code', () => {
+      const result = myFunction(payload);
+      expect(result.status).toBe(401);
+    });
+  });
+});
+```
+
+---
+
+## Rules Enforced
+
+### ❌ Anti-patterns to avoid
+
+```ts
+// ❌ BAD: Payload repeated in every test
+it('returns success', () => {
+  const result = myFunction({ field1: 'value', field2: 123 });
+  expect(result.status).toBe('success');
+});
+
+it('throws on missing field', () => {
+  const result = myFunction({ field1: '', field2: 123 }); // repeated!
+  expect(result).toThrow();
+});
+
+// ❌ BAD: No "when" in describe
+describe('validation', () => { ... });
+
+// ❌ BAD: No "should" in it
+it('returns 200', () => { ... });
+
+// ❌ BAD: Multiple scenarios crammed into one describe
+describe('when valid or invalid', () => { ... });
+```
+
+### ✅ Patterns to follow
+
+```ts
+// ✅ GOOD: Base payload in parent, override in child
+describe('myFunction', () => {
+  let payload;
+  beforeEach(() => { payload = { field1: 'default', field2: 123 }; });
+
+  describe('when field1 is empty', () => {
+    beforeEach(() => { payload.field1 = ''; });
+
+    it('should throw a validation error', () => {
+      expect(() => myFunction(payload)).toThrow();
+    });
+  });
+});
+```
+
+---
+
+## Nested Describes for Sub-Conditions (e.g. day/time, user role, feature flag)
+
+When `it` blocks inside a `describe` vary by a **sub-condition** — such as the current day, the logged-in user's role, or a feature flag state — group them into a further nested `describe("when [sub-condition]", ...)`.
+
+The `it` label must contain **only** a `should` statement describing the outcome. The sub-condition belongs in the `describe`, not repeated in every `it`.
+
+### ❌ BAD — sub-condition leaks into every `it` label
+
+```ts
+describe("when the discount window is active with a 2-day processing delay", () => {
+  it("should apply 10% discount when today is Friday at 9:00 AM", () => {
+    vi.setSystemTime(new Date("2025-03-07T09:00:00.000Z"));
+    expect(calculateDiscount(order)).toBe(10);
+  });
+
+  it("should apply 10% discount when today is Friday at 11:59 PM", () => {
+    vi.setSystemTime(new Date("2025-03-07T23:59:00.000Z"));
+    expect(calculateDiscount(order)).toBe(10);
+  });
+
+  it("should apply 0% discount when today is Saturday at 9:00 AM", () => {
+    vi.setSystemTime(new Date("2025-03-08T09:00:00.000Z"));
+    expect(calculateDiscount(order)).toBe(0);
+  });
+});
+```
+
+### ✅ GOOD — sub-condition in nested `describe`, `it` has only `should`
+
+```ts
+describe("when the discount window is active with a 2-day processing delay", () => {
+
+  describe("when today is Friday", () => {
+    it("should apply a 10% discount at the start of business hours", () => {
+      vi.setSystemTime(new Date("2025-03-07T09:00:00.000Z"));
+      expect(calculateDiscount(order)).toBe(10);
+    });
+
+    it("should apply a 10% discount just before midnight", () => {
+      vi.setSystemTime(new Date("2025-03-07T23:59:00.000Z"));
+      expect(calculateDiscount(order)).toBe(10);
+    });
+  });
+
+  describe("when today is Saturday", () => {
+    it("should apply no discount as the window has closed", () => {
+      vi.setSystemTime(new Date("2025-03-08T09:00:00.000Z"));
+      expect(calculateDiscount(order)).toBe(0);
+    });
+  });
+
+});
+```
+
+### When all `it` blocks in a nested `describe` share the same time/state — use `beforeEach`
+
+```ts
+describe("when today is Friday", () => {
+  beforeEach(() => {
+    vi.setSystemTime(new Date("2025-03-07T09:00:00.000Z"));
+  });
+
+  it("should apply a 10% discount to the order total", () => {
+    expect(calculateDiscount(order)).toBe(10);
+  });
+
+  it("should mark the order as eligible for express processing", () => {
+    expect(order.expressEligible).toBe(true);
+  });
+});
+```
+
+### Key rules for nested sub-conditions
+
+- If multiple `it` blocks differ only by a day, time, role, or flag — extract that shared context into a nested `describe("when [sub-condition]", ...)`
+- The `it` label describes **only the expected outcome** — never repeat the day/time/role inside it
+- Use `beforeEach` inside the nested `describe` when all `it` blocks in that group share the same setup
+
+---
+
+## Naming Conventions
+
+| Block | Pattern | Example |
+|---|---|---|
+| Parent `describe` | Function, class, or component name | `describe('calculateDiscount', ...)` |
+| Inner `describe` | `when [scenario or feature condition]` | `describe('when the discount window is active', ...)` |
+| Nested `describe` | `when [sub-condition: day, role, flag, state]` | `describe('when today is Friday', ...)` |
+| `it` / `test` | `should [outcome only — no day/role/condition]` | `it('should apply a 10% discount to the order total', ...)` |
+
+---
+
+## HTTP / API Request Tests
+
+For API-level tests (e.g. with supertest or axios-mock), follow the same pattern but pass the payload into the request:
+
+```ts
+describe('POST /api/users', () => {
+  let payload: CreateUserDto;
+
+  beforeEach(() => {
+    payload = {
+      name: 'Jane Doe',
+      email: 'jane@example.com',
+      role: 'user',
+    };
+  });
+
+  describe('when all fields are valid', () => {
+    it('should return 201 and the created user', async () => {
+      const response = await request(app).post('/api/users').send(payload);
+      expect(response.status).toBe(201);
+      expect(response.body.email).toBe('jane@example.com');
+    });
+  });
+
+  describe('when the email is already taken', () => {
+    beforeEach(async () => {
+      await createUser(payload); // seed the duplicate
+    });
+
+    it('should return 409 conflict', async () => {
+      const response = await request(app).post('/api/users').send(payload);
+      expect(response.status).toBe(409);
+    });
+
+    it('should return an error message describing the conflict', async () => {
+      const response = await request(app).post('/api/users').send(payload);
+      expect(response.body.message).toContain('already exists');
+    });
+  });
+
+  describe('when the name field is missing', () => {
+    beforeEach(() => {
+      delete payload.name;
+    });
+
+    it('should return 400 bad request', async () => {
+      const response = await request(app).post('/api/users').send(payload);
+      expect(response.status).toBe(400);
+    });
+  });
+});
+```
+
+---
+
+## React Component Tests (Testing Library)
+
+```ts
+describe('LoginForm', () => {
+  let props: LoginFormProps;
+
+  beforeEach(() => {
+    props = {
+      onSubmit: jest.fn(),
+      isLoading: false,
+      errorMessage: null,
+    };
+  });
+
+  describe('when the form is in its default state', () => {
+    it('should render the submit button as enabled', () => {
+      render(<LoginForm {...props} />);
+      expect(screen.getByRole('button', { name: /submit/i })).toBeEnabled();
+    });
+  });
+
+  describe('when isLoading is true', () => {
+    beforeEach(() => {
+      props.isLoading = true;
+    });
+
+    it('should disable the submit button', () => {
+      render(<LoginForm {...props} />);
+      expect(screen.getByRole('button', { name: /submit/i })).toBeDisabled();
+    });
+
+    it('should show a loading indicator', () => {
+      render(<LoginForm {...props} />);
+      expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
+    });
+  });
+
+  describe('when an error message is provided', () => {
+    beforeEach(() => {
+      props.errorMessage = 'Invalid credentials';
+    });
+
+    it('should display the error message to the user', () => {
+      render(<LoginForm {...props} />);
+      expect(screen.getByText('Invalid credentials')).toBeInTheDocument();
+    });
+  });
+});
+```

@@ -37,7 +37,6 @@ export function getCateringPrepTimeConfig(
 	params: GetCateringPrepTimeParams,
 ): CateringPrepTimeResult {
 	const { items, timezone = DEFAULT_TIMEZONE } = params;
-	console.log("items", items);
 
 	if (items.length === 0) {
 		return buildCateringPrepTimeResult(

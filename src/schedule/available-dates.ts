@@ -107,7 +107,7 @@ export function getNextAvailableDates({
 		 */
 		if (
 			!todayBusinessHours?.length &&
-			todayBusinessHoursOverride.length &&
+			!todayBusinessHoursOverride.length &&
 			!endDate
 		) {
 			continue;
