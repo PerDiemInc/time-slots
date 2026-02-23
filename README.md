@@ -78,7 +78,7 @@ Prep time can be applied in different ways (see `PrepTimeBehaviour` and `PrepTim
 - **Catering:** when `isCateringFlow` is true, cadence and frequency are derived from cart items via `getCateringPrepTimeConfig`.
 - **Delivery:** optional `estimatedDeliveryMinutes` added to weekday prep times for delivery.
 
-Detailed behaviour and edge cases are covered by the test suite; a separate document can describe test scenarios.
+Detailed behaviour and edge cases are covered by the test suite. QA-friendly test cases (Given / When / Expected) are in [docs/TEST-CASES.md](docs/TEST-CASES.md).
 
 ## Scripts
 
