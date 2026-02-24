@@ -44,7 +44,8 @@ export interface GetNextAvailableDatesParams {
 	businessHours: BusinessHour[];
 	businessHoursOverrides?: BusinessHoursOverrideOutput[];
 	datesCount?: number;
-	preSaleDates?: number[];
+	/** Allowed pickup dates: YYYY-MM-DD strings in the location timezone. */
+	preSaleDates?: string[];
 	presalePickupWeekDays?: number[];
 	endDate?: Date | null;
 	isDaysCadence?: boolean;
@@ -53,7 +54,8 @@ export interface GetNextAvailableDatesParams {
 }
 
 export interface GenerateLocationFulfillmentScheduleParams {
-	startDate: Date;
+	startDate?: Date;
+	currentDate?: Date;
 	prepTimeFrequency?: number;
 	prepTimeCadence?: PrepTimeCadence;
 	weekDayPrepTimes?: Record<number, number>;
@@ -69,7 +71,8 @@ export interface GenerateLocationFulfillmentScheduleParams {
 	}> | null;
 	gapInMinutes?: number;
 	daysCount?: number;
-	preSaleDates?: number[];
+	/** Allowed pickup dates: YYYY-MM-DD strings in the location timezone. */
+	preSaleDates?: string[];
 	presalePickupWeekDays?: number[];
 	endDate?: Date | null;
 	platform?: Platform;

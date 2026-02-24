@@ -83,6 +83,13 @@ export function isTomorrowInTimeZone(date: Date, timeZone: string): boolean {
 	return zonedNow.day === zonedTime.day && zonedNow.month === zonedTime.month;
 }
 
+/** Returns YYYY-MM-DD for the given date in the given timezone. */
+export function toDateStringInTimeZone(date: Date, timeZone: string): string {
+	const z = getZonedTime(date, findTimeZone(timeZone));
+	const pad = (n: number) => String(n).padStart(2, "0");
+	return `${z.year}-${pad(z.month)}-${pad(z.day)}`;
+}
+
 export function isSameDateInTimeZone(
 	dateLeft: Date,
 	dateRight: Date,

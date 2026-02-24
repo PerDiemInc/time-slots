@@ -4,7 +4,7 @@ import { findTimeZone, getUnixTime, getZonedTime } from "timezone-support";
 
 import { PLATFORM } from "../constants";
 import type { GetNextAvailableDatesParams, Platform } from "../types";
-import { addDaysInTimeZone, setHmOnDate } from "../utils/date";
+import { addDaysInTimeZone, setHmOnDate, toDateStringInTimeZone } from "../utils/date";
 
 function getStartOfDayInZone(
 	startDate: Date,
@@ -115,7 +115,7 @@ export function getNextAvailableDates({
 
 		if (preSaleDates.length && presalePickupWeekDays.length) {
 			if (
-				preSaleDates.includes(zonedDate.day) &&
+				preSaleDates.includes(toDateStringInTimeZone(date, timeZone)) &&
 				presalePickupWeekDays.includes(dayOfWeek)
 			) {
 				dates.push(date);
