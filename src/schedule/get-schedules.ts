@@ -16,7 +16,11 @@ import type {
 } from "../types";
 import { getLocationsBusinessHoursOverrides } from "../utils/business-hours";
 import { getCateringPrepTimeConfig } from "../utils/catering";
-import { getPreSalePickupDates, overrideTimeZoneOnUTC } from "../utils/date";
+import {
+	getPreSalePickupDates,
+	overrideTimeZoneOnUTC,
+	toDateStringInTimeZone,
+} from "../utils/date";
 import { filterBusyTimesFromSchedule } from "../utils/schedule-filter";
 import { generateLocationFulfillmentSchedule } from "./location";
 
@@ -24,6 +28,7 @@ import { generateLocationFulfillmentSchedule } from "./location";
 
 function deriveCartInfo(cartItems: CartItem[]) {
 	return {
+		cartItemsCount: cartItems.length,
 		hasPreSaleItem: cartItems.some((item) => item.preSale),
 		hasWeeklyPreSaleItem: cartItems.some((item) => item.weeklyPreSale),
 		categoryIds: Array.from(
@@ -217,10 +222,10 @@ export function getSchedules({
 			busyTimes,
 			cartCategoryIds: cart.categoryIds,
 		});
-
+	let isWeeklyPreSaleAvailable = false;
 	// ── Weekly pre-sale path (early return) ─────────────────────────────────
 	if (
-		cart.hasWeeklyPreSaleItem &&
+		(cart.hasWeeklyPreSaleItem || !cart.cartItemsCount) &&
 		weeklyPreSaleConfig?.active &&
 		!isCateringFlow
 	) {
@@ -237,15 +242,21 @@ export function getSchedules({
 				businessHoursOverrides,
 				gapInMinutes,
 				daysCount: 7,
-				preSaleDates: weeklyPickupDates.map((d) => d.getDate()),
+				preSaleDates: weeklyPickupDates.map((d) =>
+					toDateStringInTimeZone(d, currentLocation.timezone),
+				),
 				presalePickupWeekDays: weeklyPreSaleConfig.pickup_days,
 				platform,
 			});
-
-			return {
-				schedule: filterSchedule(schedule),
-				isWeeklyPreSaleAvailable: true,
-			};
+			const filteredSchedule = filterSchedule(schedule);
+			if (cart.hasWeeklyPreSaleItem) {
+				return {
+					schedule: filteredSchedule,
+					isWeeklyPreSaleAvailable: filteredSchedule.length > 0,
+				};
+			} else {
+				isWeeklyPreSaleAvailable = filteredSchedule.length > 0;
+			}
 		}
 	}
 
@@ -269,7 +280,7 @@ export function getSchedules({
 			: 1;
 
 	const schedule = generateLocationFulfillmentSchedule({
-		startDate: resolveStartDate(preSaleDates.startDate, cart.hasPreSaleItem),
+		currentDate: resolveStartDate(preSaleDates.startDate, cart.hasPreSaleItem),
 		prepTimeFrequency,
 		prepTimeCadence,
 		location: currentLocation,
@@ -287,6 +298,6 @@ export function getSchedules({
 
 	return {
 		schedule: filterSchedule(schedule),
-		isWeeklyPreSaleAvailable: false,
+		isWeeklyPreSaleAvailable,
 	};
 }

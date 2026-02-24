@@ -1,6 +1,6 @@
 {
 	"name": "@perdieminc/time-slots",
-	"version": "0.0.4",
+	"version": "0.0.5",
 	"description": "Generate time slots for scheduling",
 	"keywords": [
 		"time-slots",

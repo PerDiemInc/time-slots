@@ -364,7 +364,7 @@ describe("getNextAvailableDates", () => {
 	describe("When using preSaleDates parameter", () => {
 		it("should only return dates that match the preSaleDates array", () => {
 			const date = new Date("2024-01-01T00:00:00.000Z");
-			const preSaleDates = [1, 5, 10, 15];
+			const preSaleDates = ["2024-01-01", "2024-01-05", "2024-01-10", "2024-01-15"];
 
 			const generatedArray = getNextAvailableDates({
 				startDate: date,
@@ -391,7 +391,7 @@ describe("getNextAvailableDates", () => {
 
 		it("should return empty array when no dates match preSaleDates", () => {
 			const date = new Date("2024-01-01T00:00:00.000Z");
-			const preSaleDates = [31];
+			const preSaleDates = ["2024-01-31"];
 
 			const generatedArray = getNextAvailableDates({
 				startDate: date,
@@ -441,7 +441,14 @@ describe("getNextAvailableDates", () => {
 		it("should handle endDate with preSaleDates", () => {
 			const startDate = new Date("2024-01-01T00:00:00.000Z");
 			const endDate = new Date("2024-01-15T23:59:59.999Z");
-			const preSaleDates = [1, 5, 10, 15, 20, 25];
+			const preSaleDates = [
+				"2024-01-01",
+				"2024-01-05",
+				"2024-01-10",
+				"2024-01-15",
+				"2024-01-20",
+				"2024-01-25",
+			];
 
 			const generatedArray = getNextAvailableDates({
 				startDate,

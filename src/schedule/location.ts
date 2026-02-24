@@ -10,6 +10,7 @@ import { generateSchedule } from "./generate";
 
 export function generateLocationFulfillmentSchedule({
 	startDate,
+	currentDate = new Date(),
 	prepTimeFrequency = 0,
 	prepTimeCadence = PREP_TIME_CADENCE.MINUTE,
 	weekDayPrepTimes,
@@ -31,7 +32,7 @@ export function generateLocationFulfillmentSchedule({
 	);
 
 	const dates = getNextAvailableDates({
-		startDate,
+		startDate: startDate || currentDate,
 		businessHours,
 		businessHoursOverrides,
 		timeZone: location.timezone,
@@ -45,7 +46,7 @@ export function generateLocationFulfillmentSchedule({
 	// If prepTimeCadence is days, we need to skip opening days by prepTimeFrequency
 	const availableDates = isDaysCadence ? dates.slice(prepTimeFrequency) : dates;
 	return generateSchedule({
-		currentDate: roundToNearestMinutes(startDate),
+		currentDate: roundToNearestMinutes(currentDate),
 		weekDayPrepTimes,
 		timeZone: location.timezone,
 		dates: availableDates,
