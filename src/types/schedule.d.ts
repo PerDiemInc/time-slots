@@ -76,6 +76,7 @@ export interface GenerateLocationFulfillmentScheduleParams {
 	presalePickupWeekDays?: number[];
 	endDate?: Date | null;
 	platform?: Platform;
+	isCatering?: boolean;
 }
 
 export interface GetOpeningClosingTimeOnDateParams {

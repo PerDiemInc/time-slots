@@ -289,6 +289,7 @@ export function getSchedules({
 		gapInMinutes,
 		daysCount: effectiveDaysCount,
 		platform,
+		isCatering: isCateringFlow,
 		...(!isPreSaleEnabled && {
 			weekDayPrepTimes,
 		}),

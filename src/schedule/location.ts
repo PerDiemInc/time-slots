@@ -24,11 +24,13 @@ export function generateLocationFulfillmentSchedule({
 	presalePickupWeekDays = [],
 	endDate = null,
 	platform = PLATFORM.WEB,
+	isCatering = false,
 }: GenerateLocationFulfillmentScheduleParams): FulfillmentSchedule {
 	const isDaysCadence = prepTimeCadence === PREP_TIME_CADENCE.DAY;
 	const businessHours = getLocationBusinessHoursForFulfillment(
 		location,
 		fulfillmentPreference,
+		isCatering,
 	);
 
 	const dates = getNextAvailableDates({
