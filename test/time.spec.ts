@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+	addDaysInTimeZone,
 	getNextDateForDayOfWeek,
 	getPreSalePickupDates,
 	isSameDateInTimeZone,
@@ -357,6 +358,27 @@ describe("getPreSalePickupDates", () => {
 			expect(result[0].toISOString()).toBe("2024-03-16T12:00:00.000Z");
 			expect(result[1].toISOString()).toBe("2024-03-17T12:00:00.000Z");
 			expect(result[2].toISOString()).toBe("2024-03-20T12:00:00.000Z");
+		});
+	});
+
+	describe("addDaysInTimeZone", () => {
+		it("should advance to next calendar day in UTC", () => {
+			const date = new Date("2024-01-15T00:00:00.000Z");
+			const next = addDaysInTimeZone(date, 1, "UTC");
+			expect(next.toISOString()).toBe("2024-01-16T00:00:00.000Z");
+		});
+
+		it("should use correct DST offset after spring forward (Mar 10 in America/New_York)", () => {
+			// Mar 9 00:00 EST = 05:00 UTC; next day should be Mar 10 00:00 EDT = 04:00 UTC
+			const mar9MidnightNY = new Date("2025-03-09T05:00:00.000Z");
+			const next = addDaysInTimeZone(mar9MidnightNY, 1, "America/New_York");
+			expect(next.toISOString()).toBe("2025-03-10T04:00:00.000Z");
+		});
+
+		it("should add multiple days and respect month boundary", () => {
+			const date = new Date("2024-01-30T00:00:00.000Z");
+			const next = addDaysInTimeZone(date, 3, "UTC");
+			expect(next.toISOString()).toBe("2024-02-02T00:00:00.000Z");
 		});
 	});
 });
