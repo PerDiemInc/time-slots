@@ -404,6 +404,36 @@ describe("getNextAvailableDates", () => {
 
 			expect(generatedArray).toHaveLength(0);
 		});
+
+	});
+
+	describe("When using regular business hours across month boundary", () => {
+		it("should not get stuck on March 8 across DST (America/New_York): Mar 7–13", () => {
+			// Bug: addDaysInTimeZone used to return same day after DST (e.g. stuck on Mar 8).
+			// Start Mar 7 00:00 NY (EST); DST springs forward Mar 9 2AM; we must get Mar 7–13.
+			const startDate = new Date("2025-03-07T05:00:00.000Z"); // Mar 7 00:00 EST
+
+			const generatedArray = getNextAvailableDates({
+				startDate,
+				datesCount: 7,
+				timeZone: "America/New_York",
+				businessHours: allDaysBusinessHours,
+			});
+
+			expect(generatedArray).toHaveLength(7);
+			const expected = [
+				new Date("2025-03-07T05:00:00.000Z"), // Mar 7 00:00 EST
+				new Date("2025-03-08T05:00:00.000Z"), // Mar 8 00:00 EST
+				new Date("2025-03-09T05:00:00.000Z"), // Mar 9 00:00 EST
+				new Date("2025-03-10T04:00:00.000Z"), // Mar 10 00:00 EDT
+				new Date("2025-03-11T04:00:00.000Z"), // Mar 11 00:00 EDT
+				new Date("2025-03-12T04:00:00.000Z"), // Mar 12 00:00 EDT
+				new Date("2025-03-13T04:00:00.000Z"), // Mar 13 00:00 EDT
+			];
+			generatedArray.forEach((el, index) => {
+				expect(el).toEqual(expected[index]);
+			});
+		});
 	});
 
 	describe("When using endDate parameter", () => {
