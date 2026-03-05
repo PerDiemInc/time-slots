@@ -26,7 +26,6 @@ export type {
 	GenerateScheduleParams,
 	GetNextAvailableDatesParams,
 	GetOpeningClosingTimeOnDateParams,
-	Platform,
 } from "./schedule";
 export type {
 	FilterBusyTimesFromScheduleParams,

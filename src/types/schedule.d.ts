@@ -1,4 +1,3 @@
-import type { PLATFORM } from "../constants";
 import type {
 	BusinessHour,
 	BusinessHoursOverrideOutput,
@@ -37,20 +36,15 @@ export interface GenerateScheduleParams {
 	gapInMinutes?: number;
 	prepTimeCadence?: PrepTimeCadence;
 }
-export type Platform = (typeof PLATFORM)[keyof typeof PLATFORM];
 export interface GetNextAvailableDatesParams {
 	startDate: Date;
 	timeZone: string;
 	businessHours: BusinessHour[];
 	businessHoursOverrides?: BusinessHoursOverrideOutput[];
 	datesCount?: number;
-	/** Allowed pickup dates: YYYY-MM-DD strings in the location timezone. */
-	preSaleDates?: string[];
-	presalePickupWeekDays?: number[];
+	preSaleDates?: Date[];
 	endDate?: Date | null;
 	isDaysCadence?: boolean;
-	/** Platform for timezone handling. Web uses @date-fns/tz; ios/android use timezone-support. Default "web". */
-	platform?: Platform;
 }
 
 export interface GenerateLocationFulfillmentScheduleParams {
@@ -71,11 +65,9 @@ export interface GenerateLocationFulfillmentScheduleParams {
 	}> | null;
 	gapInMinutes?: number;
 	daysCount?: number;
-	/** Allowed pickup dates: YYYY-MM-DD strings in the location timezone. */
-	preSaleDates?: string[];
-	presalePickupWeekDays?: number[];
+	/** Allowed pickup dates (e.g. weekly pre-sale). Only these calendar days are returned. */
+	preSaleDates?: Date[];
 	endDate?: Date | null;
-	platform?: Platform;
 	isCatering?: boolean;
 }
 

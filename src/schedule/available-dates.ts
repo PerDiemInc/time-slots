@@ -1,30 +1,16 @@
 import { tz } from "@date-fns/tz";
-import { isAfter, isSameDay, startOfDay } from "date-fns";
-import { findTimeZone, getUnixTime, getZonedTime } from "timezone-support";
+import {
+	addDays,
+	isAfter,
+	isBefore,
+	isSameDay,
+	isValid,
+	startOfDay,
+} from "date-fns";
+import { findTimeZone, getZonedTime } from "timezone-support";
 
-import { PLATFORM } from "../constants";
-import type { GetNextAvailableDatesParams, Platform } from "../types";
-import { addDaysInTimeZone, setHmOnDate, toDateStringInTimeZone } from "../utils/date";
-
-function getStartOfDayInZone(
-	startDate: Date,
-	timeZone: string,
-	platform: Platform,
-): Date {
-	if (platform !== PLATFORM.ANDROID) {
-		return startOfDay(startDate, { in: tz(timeZone) });
-	}
-	const zoned = getZonedTime(startDate, findTimeZone(timeZone));
-	return new Date(
-		getUnixTime({
-			...zoned,
-			hours: 0,
-			minutes: 0,
-			seconds: 0,
-			milliseconds: 0,
-		}),
-	);
-}
+import type { GetNextAvailableDatesParams } from "../types";
+import { setHmOnDate } from "../utils/date";
 
 export function getNextAvailableDates({
 	startDate,
@@ -33,30 +19,27 @@ export function getNextAvailableDates({
 	businessHoursOverrides = [],
 	datesCount = 1,
 	preSaleDates = [],
-	presalePickupWeekDays = [],
 	endDate = null,
 	isDaysCadence = false,
-	platform = PLATFORM.WEB,
 }: GetNextAvailableDatesParams): Date[] {
-	const startOfDayInZone = getStartOfDayInZone(startDate, timeZone, platform);
-	const zonedStartTime = getZonedTime(startOfDayInZone, findTimeZone(timeZone));
+	const requestTime = new Date(startDate);
+	startDate = new Date(startOfDay(startDate, { in: tz(timeZone) }));
 
+	if (!isValid(startDate)) {
+		return [];
+	}
+
+	const timeZoneInfo = findTimeZone(timeZone);
 	const dates: Date[] = [];
 
 	for (
-		let date = new Date(
-				getUnixTime({
-					...zonedStartTime,
-					hours: 0,
-					minutes: 0,
-					seconds: 0,
-					milliseconds: 0,
-				}),
-			),
-			maxRuns = 0;
-		dates.length < datesCount && maxRuns <= 30;
-		date = addDaysInTimeZone(date, 1, timeZone), maxRuns += 1
+		let date = startDate, maxRuns = 0;
+		dates.length < datesCount && maxRuns <= 60;
+		date = new Date(addDays(date, 1, { in: tz(timeZone) })), maxRuns += 1
 	) {
+		/**
+		 * Skip if date is the same as the last date in the dates array (can happen due to DST)
+		 */
 		const lastDate = dates?.at(-1);
 		if (lastDate && isSameDay(lastDate, date)) {
 			continue;
@@ -66,11 +49,11 @@ export function getNextAvailableDates({
 			break;
 		}
 
-		if (date.getTime() < getUnixTime(zonedStartTime)) {
+		if (isBefore(date, startDate)) {
 			continue;
 		}
 
-		const zonedDate = getZonedTime(date, findTimeZone(timeZone));
+		const zonedDate = getZonedTime(date, timeZoneInfo);
 		const dayOfWeek = zonedDate.dayOfWeek ?? 0;
 
 		const todayBusinessHoursOverride = businessHoursOverrides.filter(
@@ -89,22 +72,17 @@ export function getNextAvailableDates({
 		const todayBusinessHours = businessHours.filter(
 			(bh) => bh.day === dayOfWeek,
 		);
-		// If days cadence, we dont need to skip date even if it is after the last shift end time
+
 		if (isDaysCadence) {
 			const lastShiftEndTime = todayBusinessHours.at(-1)?.endTime;
 			const shiftEndDate = lastShiftEndTime
 				? setHmOnDate(date, lastShiftEndTime, timeZone)
 				: null;
-			/**
-			 * Skip current date if current time is after the last shift end time
-			 */
-			if (shiftEndDate && isAfter(startDate, shiftEndDate)) {
+			if (shiftEndDate && isAfter(requestTime, shiftEndDate)) {
 				continue;
 			}
 		}
-		/**
-		 * Skip if today is closed by location hours or by override hours
-		 */
+
 		if (
 			!todayBusinessHours?.length &&
 			!todayBusinessHoursOverride.length &&
@@ -113,11 +91,8 @@ export function getNextAvailableDates({
 			continue;
 		}
 
-		if (preSaleDates.length && presalePickupWeekDays.length) {
-			if (
-				preSaleDates.includes(toDateStringInTimeZone(date, timeZone)) &&
-				presalePickupWeekDays.includes(dayOfWeek)
-			) {
+		if (preSaleDates.length > 0) {
+			if (preSaleDates.some((d) => isSameDay(date, d, { in: tz(timeZone) }))) {
 				dates.push(date);
 			}
 		} else {

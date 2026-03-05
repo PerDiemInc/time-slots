@@ -3,7 +3,6 @@ import {
 	DEFAULT_TIMEZONE,
 	FULFILLMENT_TYPES,
 	MINUTES_PER_DAY,
-	PLATFORM,
 	PREP_TIME_CADENCE,
 } from "../constants";
 import type {
@@ -16,11 +15,7 @@ import type {
 } from "../types";
 import { getLocationsBusinessHoursOverrides } from "../utils/business-hours";
 import { getCateringPrepTimeConfig } from "../utils/catering";
-import {
-	getPreSalePickupDates,
-	overrideTimeZoneOnUTC,
-	toDateStringInTimeZone,
-} from "../utils/date";
+import { getPreSalePickupDates, overrideTimeZoneOnUTC } from "../utils/date";
 import { filterBusyTimesFromSchedule } from "../utils/schedule-filter";
 import { generateLocationFulfillmentSchedule } from "./location";
 
@@ -183,7 +178,6 @@ export function getSchedules({
 	prepTimeSettings,
 	currentLocation,
 	isCateringFlow = false,
-	platform = PLATFORM.WEB,
 }: GetSchedulesParams): GetSchedulesResult {
 	const {
 		isAsapOrders,
@@ -201,6 +195,7 @@ export function getSchedules({
 		fulfillmentPreference,
 		currentLocation?.timezone,
 	);
+
 	const {
 		gapInMinutes,
 		busyTimes: busyTimesByLocationId,
@@ -242,11 +237,7 @@ export function getSchedules({
 				businessHoursOverrides,
 				gapInMinutes,
 				daysCount: 7,
-				preSaleDates: weeklyPickupDates.map((d) =>
-					toDateStringInTimeZone(d, currentLocation.timezone),
-				),
-				presalePickupWeekDays: weeklyPreSaleConfig.pickup_days,
-				platform,
+				preSaleDates: weeklyPickupDates,
 			});
 			const filteredSchedule = filterSchedule(schedule);
 			if (cart.hasWeeklyPreSaleItem) {
@@ -288,7 +279,6 @@ export function getSchedules({
 		businessHoursOverrides,
 		gapInMinutes,
 		daysCount: effectiveDaysCount,
-		platform,
 		isCatering: isCateringFlow,
 		...(!isPreSaleEnabled && {
 			weekDayPrepTimes,
