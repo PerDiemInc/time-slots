@@ -1,5 +1,5 @@
 import { roundToNearestMinutes } from "date-fns";
-import { PLATFORM, PREP_TIME_CADENCE } from "../constants";
+import { PREP_TIME_CADENCE } from "../constants";
 import type {
 	FulfillmentSchedule,
 	GenerateLocationFulfillmentScheduleParams,
@@ -21,9 +21,7 @@ export function generateLocationFulfillmentSchedule({
 	gapInMinutes,
 	daysCount = 1,
 	preSaleDates = [],
-	presalePickupWeekDays = [],
 	endDate = null,
-	platform = PLATFORM.WEB,
 	isCatering = false,
 }: GenerateLocationFulfillmentScheduleParams): FulfillmentSchedule {
 	const isDaysCadence = prepTimeCadence === PREP_TIME_CADENCE.DAY;
@@ -41,9 +39,7 @@ export function generateLocationFulfillmentSchedule({
 		datesCount: daysCount,
 		preSaleDates,
 		endDate,
-		presalePickupWeekDays,
 		isDaysCadence,
-		platform,
 	});
 	// If prepTimeCadence is days, we need to skip opening days by prepTimeFrequency
 	const availableDates = isDaysCadence ? dates.slice(prepTimeFrequency) : dates;

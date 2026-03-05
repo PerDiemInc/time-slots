@@ -1,6 +1,6 @@
 {
 	"name": "@perdieminc/time-slots",
-	"version": "0.0.7",
+	"version": "0.0.8",
 	"description": "Generate time slots for scheduling",
 	"keywords": [
 		"time-slots",
@@ -38,7 +38,6 @@
 	"dependencies": {
 		"@date-fns/tz": "^1.4.1",
 		"date-fns": "^4.1.0",
-		"date-fns-tz": "^3.2.0",
 		"timezone-support": "^2.2.0"
 	},
 	"devDependencies": {

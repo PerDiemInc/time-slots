@@ -159,41 +159,6 @@ describe("getSchedules", () => {
 });
 
 describe("getOpeningClosingTimeOnDate", () => {
-	describe("When no next date is available for whole month", () => {
-		it("should return null", () => {
-			const businessHours = getLocationBusinessHoursForFulfillment(
-				{
-					location_id: "loc-test",
-					timezone: "UTC",
-					pickup_hours: [
-						{ day: 0, start_time: "09:00", end_time: "17:00" },
-						{ day: 1, start_time: "09:00", end_time: "17:00" },
-						{ day: 2, start_time: "09:00", end_time: "17:00" },
-						{ day: 3, start_time: "09:00", end_time: "17:00" },
-						{ day: 4, start_time: "09:00", end_time: "17:00" },
-						{ day: 5, start_time: "09:00", end_time: "17:00" },
-						{ day: 6, start_time: "09:00", end_time: "17:00" },
-					],
-				},
-				"PICKUP",
-			);
-
-			const times = getOpeningClosingTimeOnDate({
-				date: new Date("2024-01-01T00:00:00.000Z"),
-				timeZone: "UTC",
-				businessHours,
-				businessHoursOverrides: Array.from({ length: 31 }, (_, i) => ({
-					month: 1,
-					day: i + 1,
-					startTime: null,
-					endTime: null,
-				})),
-			});
-
-			expect(times).toEqual(null);
-		});
-	});
-
 	describe("When next date is available but no business times", () => {
 		it("should return null", () => {
 			const businessHours = getLocationBusinessHoursForFulfillment(

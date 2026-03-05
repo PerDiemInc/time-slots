@@ -364,7 +364,12 @@ describe("getNextAvailableDates", () => {
 	describe("When using preSaleDates parameter", () => {
 		it("should only return dates that match the preSaleDates array", () => {
 			const date = new Date("2024-01-01T00:00:00.000Z");
-			const preSaleDates = ["2024-01-01", "2024-01-05", "2024-01-10", "2024-01-15"];
+			const preSaleDates = [
+				new Date("2024-01-01T00:00:00.000Z"),
+				new Date("2024-01-05T00:00:00.000Z"),
+				new Date("2024-01-10T00:00:00.000Z"),
+				new Date("2024-01-15T00:00:00.000Z"),
+			];
 
 			const generatedArray = getNextAvailableDates({
 				startDate: date,
@@ -372,7 +377,6 @@ describe("getNextAvailableDates", () => {
 				timeZone: "UTC",
 				businessHours: allDaysBusinessHours,
 				preSaleDates,
-				presalePickupWeekDays: [1, 3, 5],
 			});
 
 			const expectedArray = [
@@ -391,7 +395,7 @@ describe("getNextAvailableDates", () => {
 
 		it("should return empty array when no dates match preSaleDates", () => {
 			const date = new Date("2024-01-01T00:00:00.000Z");
-			const preSaleDates = ["2024-01-31"];
+			const preSaleDates = [new Date("2024-01-31T00:00:00.000Z")];
 
 			const generatedArray = getNextAvailableDates({
 				startDate: date,
@@ -399,7 +403,6 @@ describe("getNextAvailableDates", () => {
 				timeZone: "UTC",
 				businessHours: [{ day: 0, startTime: "08:00", endTime: "20:00" }],
 				preSaleDates,
-				presalePickupWeekDays: [1],
 			});
 
 			expect(generatedArray).toHaveLength(0);
@@ -409,7 +412,7 @@ describe("getNextAvailableDates", () => {
 
 	describe("When using regular business hours across month boundary", () => {
 		it("should not get stuck on March 8 across DST (America/New_York): Mar 7–13", () => {
-			// Bug: addDaysInTimeZone used to return same day after DST (e.g. stuck on Mar 8).
+			// Regression: date iteration must advance correctly across DST (e.g. not stuck on Mar 8).
 			// Start Mar 7 00:00 NY (EST); DST springs forward Mar 9 2AM; we must get Mar 7–13.
 			const startDate = new Date("2025-03-07T05:00:00.000Z"); // Mar 7 00:00 EST
 
@@ -472,12 +475,12 @@ describe("getNextAvailableDates", () => {
 			const startDate = new Date("2024-01-01T00:00:00.000Z");
 			const endDate = new Date("2024-01-15T23:59:59.999Z");
 			const preSaleDates = [
-				"2024-01-01",
-				"2024-01-05",
-				"2024-01-10",
-				"2024-01-15",
-				"2024-01-20",
-				"2024-01-25",
+				new Date("2024-01-01T00:00:00.000Z"),
+				new Date("2024-01-05T00:00:00.000Z"),
+				new Date("2024-01-10T00:00:00.000Z"),
+				new Date("2024-01-15T00:00:00.000Z"),
+				new Date("2024-01-20T00:00:00.000Z"),
+				new Date("2024-01-25T00:00:00.000Z"),
 			];
 
 			const generatedArray = getNextAvailableDates({
@@ -490,11 +493,12 @@ describe("getNextAvailableDates", () => {
 					{ day: 1, startTime: "08:00", endTime: "20:00" },
 				],
 				preSaleDates,
-				presalePickupWeekDays: [1],
 			});
 
 			const expectedArray = [
 				new Date("2024-01-01T00:00:00.000Z"),
+				new Date("2024-01-05T00:00:00.000Z"),
+				new Date("2024-01-10T00:00:00.000Z"),
 				new Date("2024-01-15T00:00:00.000Z"),
 			];
 
@@ -677,6 +681,375 @@ describe("getNextAvailableDates", () => {
 					expect(el).toEqual(expect.any(Date));
 				});
 			});
+		});
+	});
+
+	describe("UTC (consecutive midnights)", () => {
+		const timeZone = "UTC";
+
+		it("returns consecutive midnights at 00:00 UTC", () => {
+			const startDate = new Date("2026-03-01T12:00:00.000Z");
+			const result = getNextAvailableDates({
+				startDate,
+				timeZone,
+				businessHours: allDaysBusinessHours,
+				datesCount: 5,
+			});
+			expect(result).toHaveLength(5);
+			expect(result[0].toISOString()).toBe("2026-03-01T00:00:00.000Z");
+			expect(result[1].toISOString()).toBe("2026-03-02T00:00:00.000Z");
+			expect(result[2].toISOString()).toBe("2026-03-03T00:00:00.000Z");
+			expect(result[3].toISOString()).toBe("2026-03-04T00:00:00.000Z");
+			expect(result[4].toISOString()).toBe("2026-03-05T00:00:00.000Z");
+		});
+
+		it("start of day is midnight UTC", () => {
+			const startDate = new Date("2026-06-10T23:30:00.000Z");
+			const result = getNextAvailableDates({
+				startDate,
+				timeZone,
+				businessHours: allDaysBusinessHours,
+				datesCount: 1,
+			});
+			expect(result).toHaveLength(1);
+			expect(result[0].toISOString()).toBe("2026-06-10T00:00:00.000Z");
+		});
+	});
+
+	describe("Asia/Karachi (no DST, UTC+5) - 2026", () => {
+		const timeZone = "Asia/Karachi";
+
+		it("returns requested number of consecutive midnights in Karachi", () => {
+			const startDate = new Date("2026-03-04T12:00:00.000Z");
+			const result = getNextAvailableDates({
+				startDate,
+				timeZone,
+				businessHours: allDaysBusinessHours,
+				datesCount: 5,
+			});
+			expect(result).toHaveLength(5);
+			// Midnight Karachi = 19:00 UTC previous day
+			expect(result[0].toISOString()).toBe("2026-03-03T19:00:00.000Z");
+			expect(result[1].toISOString()).toBe("2026-03-04T19:00:00.000Z");
+			expect(result[2].toISOString()).toBe("2026-03-05T19:00:00.000Z");
+			expect(result[3].toISOString()).toBe("2026-03-06T19:00:00.000Z");
+			expect(result[4].toISOString()).toBe("2026-03-07T19:00:00.000Z");
+		});
+
+		it("keeps same UTC hour across many days (no DST)", () => {
+			const startDate = new Date("2026-06-15T10:00:00.000Z");
+			const result = getNextAvailableDates({
+				startDate,
+				timeZone,
+				businessHours: allDaysBusinessHours,
+				datesCount: 7,
+			});
+			expect(result).toHaveLength(7);
+			result.forEach((date, i) => {
+				expect(date.toISOString()).toBe(
+					new Date(Date.UTC(2026, 5, 14 + i, 19, 0, 0, 0)).toISOString(),
+				);
+			});
+		});
+	});
+
+	describe("America/New_York (DST) - 2026", () => {
+		const timeZone = "America/New_York";
+
+		it("spring forward: consecutive midnights shift from 05:00 to 04:00 UTC after DST", () => {
+			const startDate = new Date("2026-03-07T12:00:00.000Z");
+			const result = getNextAvailableDates({
+				startDate,
+				timeZone,
+				businessHours: allDaysBusinessHours,
+				datesCount: 4,
+			});
+			expect(result).toHaveLength(4);
+			expect(result[0].toISOString()).toBe("2026-03-07T05:00:00.000Z");
+			expect(result[1].toISOString()).toBe("2026-03-08T05:00:00.000Z");
+			expect(result[2].toISOString()).toBe("2026-03-09T04:00:00.000Z");
+			expect(result[3].toISOString()).toBe("2026-03-10T04:00:00.000Z");
+		});
+
+		it("fall back: consecutive midnights shift from 04:00 to 05:00 UTC after DST ends", () => {
+			const startDate = new Date("2026-10-31T12:00:00.000Z");
+			const result = getNextAvailableDates({
+				startDate,
+				timeZone,
+				businessHours: allDaysBusinessHours,
+				datesCount: 4,
+			});
+			expect(result).toHaveLength(4);
+			expect(result[0].toISOString()).toBe("2026-10-31T04:00:00.000Z");
+			expect(result[1].toISOString()).toBe("2026-11-01T04:00:00.000Z");
+			expect(result[2].toISOString()).toBe("2026-11-02T05:00:00.000Z");
+			expect(result[3].toISOString()).toBe("2026-11-03T05:00:00.000Z");
+		});
+
+		it("winter: all midnights at 05:00 UTC (EST)", () => {
+			const startDate = new Date("2026-01-15T12:00:00.000Z");
+			const result = getNextAvailableDates({
+				startDate,
+				timeZone,
+				businessHours: allDaysBusinessHours,
+				datesCount: 3,
+			});
+			expect(result).toHaveLength(3);
+			expect(result[0].toISOString()).toBe("2026-01-15T05:00:00.000Z");
+			expect(result[1].toISOString()).toBe("2026-01-16T05:00:00.000Z");
+			expect(result[2].toISOString()).toBe("2026-01-17T05:00:00.000Z");
+		});
+
+		it("summer: all midnights at 04:00 UTC (EDT)", () => {
+			const startDate = new Date("2026-07-15T12:00:00.000Z");
+			const result = getNextAvailableDates({
+				startDate,
+				timeZone,
+				businessHours: allDaysBusinessHours,
+				datesCount: 3,
+			});
+			expect(result).toHaveLength(3);
+			expect(result[0].toISOString()).toBe("2026-07-15T04:00:00.000Z");
+			expect(result[1].toISOString()).toBe("2026-07-16T04:00:00.000Z");
+			expect(result[2].toISOString()).toBe("2026-07-17T04:00:00.000Z");
+		});
+	});
+
+	describe("Australia/Sydney (DST southern hemisphere)", () => {
+		const timeZone = "Australia/Sydney";
+
+		it("DST end (April 5 2026 3am -> 2am): next midnight shifts from 13:00 to 14:00 UTC", () => {
+			const startDate = new Date("2026-04-04T12:00:00.000Z");
+			const result = getNextAvailableDates({
+				startDate,
+				timeZone,
+				businessHours: allDaysBusinessHours,
+				datesCount: 4,
+			});
+			expect(result).toHaveLength(4);
+			expect(result[0].toISOString()).toBe("2026-04-03T13:00:00.000Z");
+			expect(result[1].toISOString()).toBe("2026-04-04T13:00:00.000Z");
+			expect(result[2].toISOString()).toBe("2026-04-05T14:00:00.000Z");
+			expect(result[3].toISOString()).toBe("2026-04-06T14:00:00.000Z");
+		});
+
+		it("DST start (October 4 2026 2am -> 3am): next midnight shifts from 14:00 to 13:00 UTC", () => {
+			const startDate = new Date("2026-10-03T12:00:00.000Z");
+			const result = getNextAvailableDates({
+				startDate,
+				timeZone,
+				businessHours: allDaysBusinessHours,
+				datesCount: 4,
+			});
+			expect(result).toHaveLength(4);
+			expect(result[0].toISOString()).toBe("2026-10-02T14:00:00.000Z");
+			expect(result[1].toISOString()).toBe("2026-10-03T14:00:00.000Z");
+			expect(result[2].toISOString()).toBe("2026-10-04T13:00:00.000Z");
+			expect(result[3].toISOString()).toBe("2026-10-05T13:00:00.000Z");
+		});
+
+		it("summer (AEDT): midnights at 13:00 UTC", () => {
+			const startDate = new Date("2026-01-20T12:00:00.000Z");
+			const result = getNextAvailableDates({
+				startDate,
+				timeZone,
+				businessHours: allDaysBusinessHours,
+				datesCount: 3,
+			});
+			expect(result).toHaveLength(3);
+			expect(result[0].toISOString()).toBe("2026-01-19T13:00:00.000Z");
+			expect(result[1].toISOString()).toBe("2026-01-20T13:00:00.000Z");
+			expect(result[2].toISOString()).toBe("2026-01-21T13:00:00.000Z");
+		});
+
+		it("winter (AEST): midnights at 14:00 UTC", () => {
+			const startDate = new Date("2026-08-15T12:00:00.000Z");
+			const result = getNextAvailableDates({
+				startDate,
+				timeZone,
+				businessHours: allDaysBusinessHours,
+				datesCount: 3,
+			});
+			expect(result).toHaveLength(3);
+			expect(result[0].toISOString()).toBe("2026-08-14T14:00:00.000Z");
+			expect(result[1].toISOString()).toBe("2026-08-15T14:00:00.000Z");
+			expect(result[2].toISOString()).toBe("2026-08-16T14:00:00.000Z");
+		});
+	});
+
+	describe("Edge cases (invalid, datesCount, cap, leap, year boundary)", () => {
+		it("returns empty when startDate is invalid", () => {
+			const result = getNextAvailableDates({
+				startDate: new Date("invalid"),
+				timeZone: "UTC",
+				businessHours: allDaysBusinessHours,
+				datesCount: 3,
+			});
+			expect(result).toEqual([]);
+		});
+
+		it("respects datesCount", () => {
+			const result = getNextAvailableDates({
+				startDate: new Date("2026-03-01T00:00:00.000Z"),
+				timeZone: "UTC",
+				businessHours: allDaysBusinessHours,
+				datesCount: 1,
+			});
+			expect(result).toHaveLength(1);
+			expect(result[0].toISOString()).toBe("2026-03-01T00:00:00.000Z");
+		});
+
+		it("returns empty when datesCount is 0", () => {
+			const result = getNextAvailableDates({
+				startDate: new Date("2026-03-01T00:00:00.000Z"),
+				timeZone: "UTC",
+				businessHours: allDaysBusinessHours,
+				datesCount: 0,
+			});
+			expect(result).toEqual([]);
+		});
+
+		it("stops at endDate (inclusive of end date day)", () => {
+			const startDate = new Date("2026-03-01T00:00:00.000Z");
+			const endDate = new Date("2026-03-05T00:00:00.000Z");
+			const result = getNextAvailableDates({
+				startDate,
+				timeZone: "UTC",
+				businessHours: allDaysBusinessHours,
+				datesCount: 10,
+				endDate,
+			});
+			expect(result).toHaveLength(5);
+			expect(result[0].toISOString()).toBe("2026-03-01T00:00:00.000Z");
+			expect(result[4].toISOString()).toBe("2026-03-05T00:00:00.000Z");
+		});
+
+		it("caps at 61 iterations (maxRuns <= 60 allows 61 runs)", () => {
+			const result = getNextAvailableDates({
+				startDate: new Date("2026-03-01T00:00:00.000Z"),
+				timeZone: "UTC",
+				businessHours: allDaysBusinessHours,
+				datesCount: 100,
+			});
+			expect(result.length).toBeLessThanOrEqual(61);
+			expect(result.length).toBe(61);
+			expect(result[result.length - 1].getTime()).toBeGreaterThan(
+				result[0].getTime(),
+			);
+		});
+
+		it("no duplicate calendar days in result (DST)", () => {
+			const result = getNextAvailableDates({
+				startDate: new Date("2026-03-07T12:00:00.000Z"),
+				timeZone: "America/New_York",
+				businessHours: allDaysBusinessHours,
+				datesCount: 5,
+			});
+			expect(result).toHaveLength(5);
+			const utcDates = result.map((d) => d.toISOString().slice(0, 10));
+			expect([...new Set(utcDates)].length).toBe(result.length);
+		});
+
+		it("leap year: includes Feb 29", () => {
+			const result = getNextAvailableDates({
+				startDate: new Date("2024-02-28T12:00:00.000Z"),
+				timeZone: "UTC",
+				businessHours: allDaysBusinessHours,
+				datesCount: 4,
+			});
+			expect(result).toHaveLength(4);
+			expect(result[0].toISOString()).toBe("2024-02-28T00:00:00.000Z");
+			expect(result[1].toISOString()).toBe("2024-02-29T00:00:00.000Z");
+			expect(result[2].toISOString()).toBe("2024-03-01T00:00:00.000Z");
+			expect(result[3].toISOString()).toBe("2024-03-02T00:00:00.000Z");
+		});
+
+		it("year boundary: Dec 31 and Jan 1", () => {
+			const result = getNextAvailableDates({
+				startDate: new Date("2026-12-30T12:00:00.000Z"),
+				timeZone: "UTC",
+				businessHours: allDaysBusinessHours,
+				datesCount: 4,
+			});
+			expect(result).toHaveLength(4);
+			expect(result[0].toISOString()).toBe("2026-12-30T00:00:00.000Z");
+			expect(result[1].toISOString()).toBe("2026-12-31T00:00:00.000Z");
+			expect(result[2].toISOString()).toBe("2027-01-01T00:00:00.000Z");
+			expect(result[3].toISOString()).toBe("2027-01-02T00:00:00.000Z");
+		});
+	});
+
+	describe("Business hours (empty and partial)", () => {
+		it("empty businessHours: returns no days (no open hours so every day is skipped)", () => {
+			const result = getNextAvailableDates({
+				startDate: new Date("2026-03-01T00:00:00.000Z"),
+				timeZone: "UTC",
+				businessHours: [],
+				datesCount: 3,
+			});
+			expect(result).toHaveLength(0);
+		});
+
+		it("partial businessHours (weekdays only) with no overrides: returns only weekdays", () => {
+			const weekdaysOnly = [1, 2, 3, 4, 5].map((day) => ({
+				day,
+				startTime: "09:00",
+				endTime: "17:00",
+			}));
+			const result = getNextAvailableDates({
+				startDate: new Date("2026-03-07T12:00:00.000Z"),
+				timeZone: "UTC",
+				businessHours: weekdaysOnly,
+				businessHoursOverrides: [],
+				datesCount: 5,
+			});
+			expect(result).toHaveLength(5);
+			// Mar 7 2026 is Saturday → first included day is Monday Mar 9
+			expect(result[0].toISOString()).toBe("2026-03-09T00:00:00.000Z");
+			expect(result[4].toISOString()).toBe("2026-03-13T00:00:00.000Z");
+		});
+	});
+
+	describe("Karachi and NY DST (strict ISO expectations)", () => {
+		it("Asia/Karachi: returns requested count, strictly increasing, no duplicate days", () => {
+			const result = getNextAvailableDates({
+				startDate: new Date("2026-03-04T12:00:00.000Z"),
+				timeZone: "Asia/Karachi",
+				businessHours: allDaysBusinessHours,
+				datesCount: 5,
+			});
+			expect(result).toHaveLength(5);
+			for (let i = 1; i < result.length; i++) {
+				expect(result[i].getTime()).toBeGreaterThan(result[i - 1].getTime());
+			}
+			const dateStrings = result.map((d) => d.toISOString().slice(0, 10));
+			expect([...new Set(dateStrings)].length).toBe(5);
+		});
+
+		it("Asia/Karachi: each date is midnight in store TZ (19:00 UTC)", () => {
+			const result = getNextAvailableDates({
+				startDate: new Date("2026-03-04T12:00:00.000Z"),
+				timeZone: "Asia/Karachi",
+				businessHours: allDaysBusinessHours,
+				datesCount: 3,
+			});
+			expect(result).toHaveLength(3);
+			expect(result[0].toISOString()).toBe("2026-03-03T19:00:00.000Z");
+			expect(result[1].toISOString()).toBe("2026-03-04T19:00:00.000Z");
+			expect(result[2].toISOString()).toBe("2026-03-05T19:00:00.000Z");
+		});
+
+		it("America/New_York DST spring: midnights shift 05:00 -> 04:00 UTC", () => {
+			const result = getNextAvailableDates({
+				startDate: new Date("2026-03-07T12:00:00.000Z"),
+				timeZone: "America/New_York",
+				businessHours: allDaysBusinessHours,
+				datesCount: 3,
+			});
+			expect(result).toHaveLength(3);
+			expect(result[0].toISOString()).toBe("2026-03-07T05:00:00.000Z");
+			expect(result[1].toISOString()).toBe("2026-03-08T05:00:00.000Z");
+			expect(result[2].toISOString()).toBe("2026-03-09T04:00:00.000Z");
 		});
 	});
 });
