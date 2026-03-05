@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { PREP_TIME_CADENCE } from "../src/constants";
 import type { GetCateringPrepTimeParams } from "../src/types";
 import { getCateringPrepTimeConfig } from "../src/utils/catering";
@@ -11,33 +11,37 @@ function makeCartItem(overrides: GetCateringPrepTimeParams["items"][0] = {}) {
 	};
 }
 
+/**
+ * Catering prep is applied in hours (first slot only); cadence/frequency from config
+ * are not used for slot logic. Result always has prepTimeCadence "hour",
+ * prepTimeFrequency 0, weekDayPrepTimes {}. totalCateringPrepTimeInHours carries
+ * the actual prep (hours or days*24).
+ */
 describe("getCateringPrepTimeConfig", () => {
 	describe("when items is empty", () => {
-		it("should return fallback with HOUR cadence and frequency 1 when no params are given", () => {
+		it("should return hour cadence, frequency 0, and totalCateringPrepTimeInHours from fallback (1)", () => {
 			const result = getCateringPrepTimeConfig({ items: [] });
 
 			expect(result.prepTimeCadence).toBe(PREP_TIME_CADENCE.HOUR);
-			expect(result.prepTimeFrequency).toBe(1);
-			expect(result.weekDayPrepTimes).toBeDefined();
-			expect(Object.keys(result.weekDayPrepTimes ?? {})).toHaveLength(1);
+			expect(result.prepTimeFrequency).toBe(0);
+			expect(result.weekDayPrepTimes).toEqual({});
+			expect(result.totalCateringPrepTimeInHours).toBe(1);
 		});
 
-		it("should use prepTimeCadence and prepTimeFrequency from params when provided", () => {
+		it("should use params for totalCateringPrepTimeInHours only (DAY 2 → 48h)", () => {
 			const result = getCateringPrepTimeConfig({
 				items: [],
 				prepTimeCadence: PREP_TIME_CADENCE.DAY,
 				prepTimeFrequency: 2,
 			});
 
-			expect(result.prepTimeCadence).toBe(PREP_TIME_CADENCE.DAY);
-			expect(result.prepTimeFrequency).toBe(2);
+			expect(result.prepTimeCadence).toBe(PREP_TIME_CADENCE.HOUR);
+			expect(result.prepTimeFrequency).toBe(0);
 			expect(result.weekDayPrepTimes).toEqual({});
+			expect(result.totalCateringPrepTimeInHours).toBe(48);
 		});
 
-		it("should return weekDayPrepTimes for current day when cadence is HOUR and timezone is provided", () => {
-			vi.useFakeTimers();
-			vi.setSystemTime(new Date("2026-01-05T12:00:00.000Z")); // Monday = 1 in timezone-support
-
+		it("should return totalCateringPrepTimeInHours when timezone provided (3h)", () => {
 			const result = getCateringPrepTimeConfig({
 				items: [],
 				prepTimeCadence: PREP_TIME_CADENCE.HOUR,
@@ -46,17 +50,14 @@ describe("getCateringPrepTimeConfig", () => {
 			});
 
 			expect(result.prepTimeCadence).toBe(PREP_TIME_CADENCE.HOUR);
-			expect(result.prepTimeFrequency).toBe(3);
-			expect(result.weekDayPrepTimes).toBeDefined();
-			// 3 hours * 60 = 180 minutes
-			expect(Object.values(result.weekDayPrepTimes ?? {})).toContain(180);
-
-			vi.useRealTimers();
+			expect(result.prepTimeFrequency).toBe(0);
+			expect(result.weekDayPrepTimes).toEqual({});
+			expect(result.totalCateringPrepTimeInHours).toBe(3);
 		});
 	});
 
 	describe("when items have catering prep_time", () => {
-		it("should return DAY cadence with max day frequency when only day items exist", () => {
+		it("should return totalCateringPrepTimeInHours for max day frequency (3 days → 72h)", () => {
 			const result = getCateringPrepTimeConfig({
 				items: [
 					makeCartItem({
@@ -79,12 +80,13 @@ describe("getCateringPrepTimeConfig", () => {
 				timezone: "UTC",
 			});
 
-			expect(result.prepTimeCadence).toBe(PREP_TIME_CADENCE.DAY);
-			expect(result.prepTimeFrequency).toBe(3);
+			expect(result.prepTimeCadence).toBe(PREP_TIME_CADENCE.HOUR);
+			expect(result.prepTimeFrequency).toBe(0);
 			expect(result.weekDayPrepTimes).toEqual({});
+			expect(result.totalCateringPrepTimeInHours).toBe(72);
 		});
 
-		it("should return HOUR cadence with max hour frequency when only hour items exist", () => {
+		it("should return totalCateringPrepTimeInHours for max hour frequency (5h)", () => {
 			const result = getCateringPrepTimeConfig({
 				items: [
 					makeCartItem({
@@ -108,12 +110,12 @@ describe("getCateringPrepTimeConfig", () => {
 			});
 
 			expect(result.prepTimeCadence).toBe(PREP_TIME_CADENCE.HOUR);
-			expect(result.prepTimeFrequency).toBe(5);
-			expect(result.weekDayPrepTimes).toBeDefined();
-			expect(Object.values(result.weekDayPrepTimes ?? {})).toContain(5 * 60);
+			expect(result.prepTimeFrequency).toBe(0);
+			expect(result.weekDayPrepTimes).toEqual({});
+			expect(result.totalCateringPrepTimeInHours).toBe(5);
 		});
 
-		it("should give DAY priority when items have both DAY and HOUR cadence", () => {
+		it("should give DAY priority when items have both DAY and HOUR (2 days → 48h)", () => {
 			const result = getCateringPrepTimeConfig({
 				items: [
 					makeCartItem({
@@ -136,21 +138,22 @@ describe("getCateringPrepTimeConfig", () => {
 				timezone: "UTC",
 			});
 
-			expect(result.prepTimeCadence).toBe(PREP_TIME_CADENCE.DAY);
-			expect(result.prepTimeFrequency).toBe(2);
+			expect(result.prepTimeCadence).toBe(PREP_TIME_CADENCE.HOUR);
+			expect(result.prepTimeFrequency).toBe(0);
 			expect(result.weekDayPrepTimes).toEqual({});
+			expect(result.totalCateringPrepTimeInHours).toBe(48);
 		});
 
-		it("should fall back to params when items have no valid catering prep_time", () => {
+		it("should fall back to params totalCateringPrepTimeInHours when no valid catering prep_time (1 day → 24h)", () => {
 			const result = getCateringPrepTimeConfig({
 				items: [
-					makeCartItem({}), // no cateringService
+					makeCartItem({}),
 					makeCartItem({
 						cateringService: {
 							min_quantity: 1,
 							max_quantity: 10,
 							serve_count: 1,
-							prep_time: { cadence: "minute" as const, frequency: 30 }, // MINUTE not DAY/HOUR
+							prep_time: { cadence: "minute" as const, frequency: 30 },
 						},
 					}),
 				],
@@ -159,12 +162,13 @@ describe("getCateringPrepTimeConfig", () => {
 				timezone: "UTC",
 			});
 
-			expect(result.prepTimeCadence).toBe(PREP_TIME_CADENCE.DAY);
-			expect(result.prepTimeFrequency).toBe(1);
+			expect(result.prepTimeCadence).toBe(PREP_TIME_CADENCE.HOUR);
+			expect(result.prepTimeFrequency).toBe(0);
 			expect(result.weekDayPrepTimes).toEqual({});
+			expect(result.totalCateringPrepTimeInHours).toBe(24);
 		});
 
-		it("should return max frequency when multiple items have valid HOUR catering prep_time", () => {
+		it("should return totalCateringPrepTimeInHours for max hour frequency (8h)", () => {
 			const result = getCateringPrepTimeConfig({
 				items: [
 					makeCartItem({
@@ -188,7 +192,8 @@ describe("getCateringPrepTimeConfig", () => {
 			});
 
 			expect(result.prepTimeCadence).toBe(PREP_TIME_CADENCE.HOUR);
-			expect(result.prepTimeFrequency).toBe(8);
+			expect(result.prepTimeFrequency).toBe(0);
+			expect(result.totalCateringPrepTimeInHours).toBe(8);
 		});
 	});
 });

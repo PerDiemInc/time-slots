@@ -1,30 +1,25 @@
-import { findTimeZone, getZonedTime } from "timezone-support";
-import { DEFAULT_TIMEZONE, PREP_TIME_CADENCE } from "../constants";
+import { PREP_TIME_CADENCE } from "../constants";
 import type {
 	CateringPrepTimeResult,
 	GetCateringPrepTimeParams,
 } from "../types";
 
+/**
+ * Catering prep time is applied to the first slot only (not weekDayPrepTimes).
+ */
 function buildCateringPrepTimeResult(
 	prepTimeCadence: CateringPrepTimeResult["prepTimeCadence"],
 	prepTimeFrequency: number,
-	timezone: string = DEFAULT_TIMEZONE,
 ): CateringPrepTimeResult {
-	const result: CateringPrepTimeResult = {
-		prepTimeCadence,
-		prepTimeFrequency,
+	return {
+		prepTimeCadence: "hour",
+		prepTimeFrequency: 0,
+		weekDayPrepTimes: {},
+		totalCateringPrepTimeInHours:
+			prepTimeCadence === PREP_TIME_CADENCE.DAY
+				? prepTimeFrequency * 24
+				: prepTimeFrequency,
 	};
-	if (prepTimeCadence === PREP_TIME_CADENCE.DAY) {
-		result.weekDayPrepTimes = {};
-	} else {
-		result.weekDayPrepTimes = {
-			[getZonedTime(new Date(), findTimeZone(timezone)).dayOfWeek]:
-				prepTimeCadence === PREP_TIME_CADENCE.HOUR
-					? prepTimeFrequency * 60
-					: prepTimeFrequency,
-		};
-	}
-	return result;
 }
 
 /**
@@ -36,13 +31,12 @@ function buildCateringPrepTimeResult(
 export function getCateringPrepTimeConfig(
 	params: GetCateringPrepTimeParams,
 ): CateringPrepTimeResult {
-	const { items, timezone = DEFAULT_TIMEZONE } = params;
+	const { items } = params;
 
 	if (items.length === 0) {
 		return buildCateringPrepTimeResult(
 			params.prepTimeCadence ?? PREP_TIME_CADENCE.HOUR,
 			params.prepTimeFrequency ?? 1,
-			timezone,
 		);
 	}
 
@@ -65,7 +59,6 @@ export function getCateringPrepTimeConfig(
 		return buildCateringPrepTimeResult(
 			PREP_TIME_CADENCE.DAY,
 			Math.max(...dayFrequencies),
-			timezone,
 		);
 	}
 
@@ -73,13 +66,11 @@ export function getCateringPrepTimeConfig(
 		return buildCateringPrepTimeResult(
 			PREP_TIME_CADENCE.HOUR,
 			Math.max(...hourFrequencies),
-			timezone,
 		);
 	}
 
 	return buildCateringPrepTimeResult(
 		params.prepTimeCadence ?? PREP_TIME_CADENCE.HOUR,
 		params.prepTimeFrequency ?? 1,
-		timezone,
 	);
 }

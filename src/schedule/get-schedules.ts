@@ -1,4 +1,4 @@
-import { differenceInDays } from "date-fns";
+import { addHours, differenceInDays } from "date-fns";
 import {
 	DEFAULT_TIMEZONE,
 	FULFILLMENT_TYPES,
@@ -71,12 +71,22 @@ function getPreSaleHoursOverride(
 	return null;
 }
 
-function resolveStartDate(
-	zonedDueStartDate: Date,
-	hasPreSaleItem: boolean,
-): Date {
+function resolveStartDate({
+	preSaleStartDate,
+	hasPreSaleItem,
+	totalCateringPrepTimeInHours,
+	isCateringFlow,
+}: {
+	preSaleStartDate: Date;
+	hasPreSaleItem: boolean;
+	totalCateringPrepTimeInHours: number;
+	isCateringFlow: boolean;
+}): Date {
 	if (hasPreSaleItem) {
-		return new Date(Math.max(zonedDueStartDate.getTime(), Date.now()));
+		return new Date(Math.max(preSaleStartDate.getTime(), Date.now()));
+	}
+	if (isCateringFlow && totalCateringPrepTimeInHours > 0) {
+		return addHours(new Date(), totalCateringPrepTimeInHours);
 	}
 	return new Date();
 }
@@ -127,7 +137,6 @@ function resolvePrepTimeConfig(
 	cartItems: CartItem[],
 	isCateringFlow: boolean,
 	fulfillmentPreference: "PICKUP" | "DELIVERY" | "CURBSIDE",
-	timezone: string = DEFAULT_TIMEZONE,
 ): PrepTimeSettings {
 	let resolved: PrepTimeSettings;
 
@@ -143,7 +152,6 @@ function resolvePrepTimeConfig(
 			items: cartItems,
 			prepTimeCadence: prepTimeSettings.prepTimeCadence,
 			prepTimeFrequency: prepTimeSettings.prepTimeFrequency,
-			timezone,
 		});
 		resolved = {
 			...prepTimeSettings,
@@ -193,7 +201,6 @@ export function getSchedules({
 		cartItems,
 		isCateringFlow,
 		fulfillmentPreference,
-		currentLocation?.timezone,
 	);
 
 	const {
@@ -202,6 +209,7 @@ export function getSchedules({
 		prepTimeFrequency,
 		prepTimeCadence,
 		weekDayPrepTimes,
+		totalCateringPrepTimeInHours,
 	} = resolvedPrepTime;
 
 	const busyTimes = busyTimesByLocationId?.[currentLocation.location_id] ?? [];
@@ -271,7 +279,12 @@ export function getSchedules({
 			: 1;
 
 	const schedule = generateLocationFulfillmentSchedule({
-		currentDate: resolveStartDate(preSaleDates.startDate, cart.hasPreSaleItem),
+		currentDate: resolveStartDate({
+			preSaleStartDate: preSaleDates.startDate,
+			hasPreSaleItem: cart.hasPreSaleItem,
+			totalCateringPrepTimeInHours,
+			isCateringFlow,
+		}),
 		prepTimeFrequency,
 		prepTimeCadence,
 		location: currentLocation,
