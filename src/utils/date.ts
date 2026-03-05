@@ -124,31 +124,6 @@ export function isMidnightTransition(
 	);
 }
 
-export function addDaysInTimeZone(
-	date: Date,
-	days: number,
-	timeZone: string,
-): Date {
-	const zone = findTimeZone(timeZone);
-	const { zone: origZone, year, month, day } = getZonedTime(date, zone);
-	// Handle month/year overflow via Date calendar arithmetic
-	const temp = new Date(year, month - 1, day + days);
-	const components = {
-		year: temp.getFullYear(),
-		month: temp.getMonth() + 1,
-		day: temp.getDate(),
-		hours: 0,
-		minutes: 0,
-		seconds: 0,
-		milliseconds: 0,
-	};
-	// Two-pass DST resolution: tentative midnight with old offset → get correct
-	// zone for new date (e.g. EST→EDT) → rebuild midnight with correct offset
-	const tentativeMidnight = getUnixTime({ zone: origZone, ...components });
-	const newZone = getZonedTime(new Date(tentativeMidnight), zone).zone;
-	return new Date(getUnixTime({ zone: newZone, ...components }));
-}
-
 export function isZeroPrepTimeForMidnightShift({
 	prevDayBusinessHours,
 	businessHour,

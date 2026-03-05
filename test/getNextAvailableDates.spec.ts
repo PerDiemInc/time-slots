@@ -412,7 +412,7 @@ describe("getNextAvailableDates", () => {
 
 	describe("When using regular business hours across month boundary", () => {
 		it("should not get stuck on March 8 across DST (America/New_York): Mar 7–13", () => {
-			// Bug: addDaysInTimeZone used to return same day after DST (e.g. stuck on Mar 8).
+			// Regression: date iteration must advance correctly across DST (e.g. not stuck on Mar 8).
 			// Start Mar 7 00:00 NY (EST); DST springs forward Mar 9 2AM; we must get Mar 7–13.
 			const startDate = new Date("2025-03-07T05:00:00.000Z"); // Mar 7 00:00 EST
 
