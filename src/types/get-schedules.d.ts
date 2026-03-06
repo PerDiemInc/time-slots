@@ -64,6 +64,7 @@ export interface CateringPrepTimeResult {
 
 export interface PrepTimeSettings {
 	prepTimeInMinutes: number;
+	defaultPrepTimeInMinutes?: number;
 	weekDayPrepTimes: Record<number, number>;
 	gapInMinutes: number;
 	busyTimes: Record<string, BusyTimeItem[]>;
@@ -76,7 +77,7 @@ export interface PrepTimeSettings {
 	fulfillAtBusinessDayStart: boolean;
 	/** When fulfillment is DELIVERY, added to each weekday prep time so slots reflect when order is received. */
 	estimatedDeliveryMinutes?: number;
-	totalCateringPrepTimeInHours: number;
+	totalCateringPrepTimeInHours?: number;
 }
 
 // ── getSchedules params / result ────────────────────────────────────────────

@@ -4,6 +4,18 @@ import type {
 	GetCateringPrepTimeParams,
 } from "../types";
 
+const getTotalCateringPrepTimeInHours = (
+	prepTimeCadence: CateringPrepTimeResult["prepTimeCadence"],
+	prepTimeFrequency: number,
+) => {
+	if (prepTimeCadence === PREP_TIME_CADENCE.MINUTE) {
+		return Math.floor(prepTimeFrequency / 60);
+	}
+	if (prepTimeCadence === PREP_TIME_CADENCE.HOUR) {
+		return prepTimeFrequency;
+	}
+	return prepTimeFrequency * 24;
+};
 /**
  * Catering prep time is applied to the first slot only (not weekDayPrepTimes).
  */
@@ -12,13 +24,13 @@ function buildCateringPrepTimeResult(
 	prepTimeFrequency: number,
 ): CateringPrepTimeResult {
 	return {
-		prepTimeCadence: "hour",
+		prepTimeCadence: "minute",
 		prepTimeFrequency: 0,
 		weekDayPrepTimes: {},
-		totalCateringPrepTimeInHours:
-			prepTimeCadence === PREP_TIME_CADENCE.DAY
-				? prepTimeFrequency * 24
-				: prepTimeFrequency,
+		totalCateringPrepTimeInHours: getTotalCateringPrepTimeInHours(
+			prepTimeCadence,
+			prepTimeFrequency,
+		),
 	};
 }
 
