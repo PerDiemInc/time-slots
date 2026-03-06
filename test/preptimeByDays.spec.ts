@@ -51,6 +51,7 @@ function makePrepTimeSettings(
 		gapInMinutes: 15,
 		busyTimes: {},
 		fulfillAtBusinessDayStart: false,
+		totalCateringPrepTimeInHours: 0,
 		...overrides,
 	};
 }

@@ -54,6 +54,7 @@ function makePrepTimeSettings(
 		gapInMinutes: 15,
 		busyTimes: {},
 		fulfillAtBusinessDayStart: false,
+		totalCateringPrepTimeInHours: 0,
 		...overrides,
 	};
 }
@@ -128,10 +129,7 @@ describe("preptimeByMinutes", () => {
 	describe("when during normal store hours with 24h prep time", () => {
 		describe("when current time is Monday 2:00 PM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-06T14:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-06T14:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Tuesday 2:00 PM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -142,10 +140,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Monday 4:00 PM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-06T16:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-06T16:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Tuesday 4:00 PM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -156,10 +151,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Monday 8:00 AM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-06T08:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-06T08:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Tuesday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -170,10 +162,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Monday 7:00 PM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-06T19:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-06T19:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Tuesday 7:00 PM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -184,10 +173,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Monday 10:00 AM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-06T10:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-06T10:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Tuesday 10:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -200,10 +186,7 @@ describe("preptimeByMinutes", () => {
 	describe("when before or after store hours with 24h prep time", () => {
 		describe("when current time is Monday 2:00 AM before open", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-06T02:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-06T02:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Tuesday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -214,10 +197,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Monday 6:00 AM before open", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-06T06:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-06T06:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Tuesday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -228,10 +208,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Monday 7:59 AM before open", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-06T07:59:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-06T07:59:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Tuesday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -242,10 +219,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Monday 9:00 PM after close", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-06T21:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-06T21:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Wednesday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -256,10 +230,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Monday 11:00 PM after close", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-06T23:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-06T23:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Wednesday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -272,10 +243,7 @@ describe("preptimeByMinutes", () => {
 	describe("when store is closed on Sunday with 24h prep time", () => {
 		describe("when current time is Saturday 2:00 PM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-11T14:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-11T14:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Monday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -286,10 +254,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Saturday 8:00 AM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-11T08:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-11T08:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Monday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -300,10 +265,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Saturday 6:00 PM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-11T18:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-11T18:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Monday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -314,10 +276,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Saturday 10:00 PM after close", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-11T22:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-11T22:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Monday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -328,10 +287,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Sunday 10:00 AM (store closed)", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-12T10:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-12T10:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Monday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -342,10 +298,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Sunday 7:00 PM (store closed)", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-12T19:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-12T19:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Monday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -371,10 +324,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Friday 2:00 PM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-10T14:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-10T14:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Saturday 2:00 PM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -385,10 +335,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Friday 5:00 PM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-10T17:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-10T17:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Saturday 5:00 PM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -399,10 +346,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Friday 7:00 PM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-10T19:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-10T19:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Monday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -413,10 +357,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Saturday 11:00 AM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-11T11:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-11T11:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Monday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -442,10 +383,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Friday 9:00 PM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-10T21:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-10T21:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Monday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -458,10 +396,7 @@ describe("preptimeByMinutes", () => {
 	describe("when during normal hours with 24h prep time (early closure scenario)", () => {
 		describe("when current time is Tuesday 2:00 PM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-07T14:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-07T14:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Wednesday 2:00 PM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -487,10 +422,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Tuesday 9:00 AM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-07T09:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-07T09:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Wednesday 11:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -501,10 +433,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Tuesday 12:00 PM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-07T12:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-07T12:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Wednesday 12:00 PM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -517,10 +446,7 @@ describe("preptimeByMinutes", () => {
 	describe("when prep time is 48 hours", () => {
 		describe("when current time is Monday 2:00 PM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-06T14:00:00.000Z"),
-					MINUTES_48H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-06T14:00:00.000Z"), MINUTES_48H),
 			);
 			it("should return first slot Wednesday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -531,10 +457,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Monday 9:00 PM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-06T21:00:00.000Z"),
-					MINUTES_48H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-06T21:00:00.000Z"), MINUTES_48H),
 			);
 			it("should return first slot Wednesday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -545,10 +468,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Friday 2:00 PM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-10T14:00:00.000Z"),
-					MINUTES_48H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-10T14:00:00.000Z"), MINUTES_48H),
 			);
 			it("should return first slot Monday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -559,10 +479,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Saturday 10:00 AM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-11T10:00:00.000Z"),
-					MINUTES_48H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-11T10:00:00.000Z"), MINUTES_48H),
 			);
 			it("should return first slot Monday 10:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -575,10 +492,7 @@ describe("preptimeByMinutes", () => {
 	describe("when prep time is 72 hours", () => {
 		describe("when current time is Monday 2:00 PM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-06T14:00:00.000Z"),
-					MINUTES_72H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-06T14:00:00.000Z"), MINUTES_72H),
 			);
 			it("should return first slot Wednesday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -589,10 +503,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is Friday 2:00 PM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-10T14:00:00.000Z"),
-					MINUTES_72H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-10T14:00:00.000Z"), MINUTES_72H),
 			);
 			it("should return first slot Monday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -605,10 +516,7 @@ describe("preptimeByMinutes", () => {
 	describe("when testing exact boundary times with 24h prep time", () => {
 		describe("when current time is 8:00:00 AM just opened", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-06T08:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-06T08:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot next day 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -619,10 +527,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is 7:59:59 AM before open", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-06T07:59:59.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-06T07:59:59.000Z"), MINUTES_24H),
 			);
 			it("should return first slot next day 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -633,10 +538,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is 8:00:00 PM just closed", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-06T20:00:00.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-06T20:00:00.000Z"), MINUTES_24H),
 			);
 			it("should return first slot day after next 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -647,10 +549,7 @@ describe("preptimeByMinutes", () => {
 
 		describe("when current time is 7:59:59 PM", () => {
 			beforeEach(() =>
-				applyPrepAtOrderDate(
-					new Date("2025-01-06T19:59:59.000Z"),
-					MINUTES_24H,
-				),
+				applyPrepAtOrderDate(new Date("2025-01-06T19:59:59.000Z"), MINUTES_24H),
 			);
 			it("should return first slot Wednesday 8:00 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
@@ -678,7 +577,9 @@ describe("preptimeByMinutes", () => {
 				}),
 			);
 			expect(schedule[0].date.getUTCDate()).toBe(3);
-			expect(schedule[0].slots[0]).toEqual(new Date("2025-01-03T08:20:00.000Z"));
+			expect(schedule[0].slots[0]).toEqual(
+				new Date("2025-01-03T08:20:00.000Z"),
+			);
 		});
 
 		it("should carry prep time into the next shift on the same day", () => {
@@ -696,7 +597,9 @@ describe("preptimeByMinutes", () => {
 				}),
 				location,
 			);
-			expect(schedule[0].slots[0]).toEqual(new Date("2025-01-06T14:00:00.000Z"));
+			expect(schedule[0].slots[0]).toEqual(
+				new Date("2025-01-06T14:00:00.000Z"),
+			);
 		});
 	});
 });

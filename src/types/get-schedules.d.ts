@@ -58,8 +58,8 @@ export interface CartItem {
 export interface CateringPrepTimeResult {
 	prepTimeCadence: PrepTimeCadence;
 	prepTimeFrequency: number;
-	/** Only set when prepTimeCadence is not DAY (e.g. HOUR). */
 	weekDayPrepTimes?: Record<number, number>;
+	totalCateringPrepTimeInHours: number; // we only need to add it in the first slot, not weekday prep times
 }
 
 export interface PrepTimeSettings {
@@ -76,6 +76,7 @@ export interface PrepTimeSettings {
 	fulfillAtBusinessDayStart: boolean;
 	/** When fulfillment is DELIVERY, added to each weekday prep time so slots reflect when order is received. */
 	estimatedDeliveryMinutes?: number;
+	totalCateringPrepTimeInHours: number;
 }
 
 // ── getSchedules params / result ────────────────────────────────────────────
