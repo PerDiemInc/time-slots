@@ -14,6 +14,7 @@ export function generateLocationFulfillmentSchedule({
 	prepTimeFrequency = 0,
 	prepTimeCadence = PREP_TIME_CADENCE.MINUTE,
 	weekDayPrepTimes,
+	defaultPrepTimeInMinutes,
 	location,
 	fulfillmentPreference,
 	businessHoursOverrides = [],
@@ -46,6 +47,7 @@ export function generateLocationFulfillmentSchedule({
 	return generateSchedule({
 		currentDate: roundToNearestMinutes(currentDate),
 		weekDayPrepTimes,
+		defaultPrepTimeInMinutes,
 		timeZone: location.timezone,
 		dates: availableDates,
 		businessHours,

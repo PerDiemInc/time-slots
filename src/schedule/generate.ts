@@ -8,11 +8,7 @@ import {
 } from "date-fns";
 import { findTimeZone, getZonedTime } from "timezone-support";
 import type { PrepTimeBehaviourType } from "../constants";
-import {
-	DEFAULT_PREP_TIME_IN_MINUTES,
-	PREP_TIME_CADENCE,
-	PrepTimeBehaviour,
-} from "../constants";
+import { PREP_TIME_CADENCE, PrepTimeBehaviour } from "../constants";
 import type {
 	BusinessHour,
 	BusinessHoursOverrideOutput,
@@ -87,6 +83,7 @@ export function generateSchedule({
 	currentDate = new Date(),
 	prepTimeBehaviour = PrepTimeBehaviour.ROLL_FROM_FIRST_SHIFT,
 	weekDayPrepTimes = {},
+	defaultPrepTimeInMinutes,
 	timeZone,
 	dates = [],
 	businessHours = [],
@@ -96,6 +93,7 @@ export function generateSchedule({
 	prepTimeCadence = null,
 }: GenerateScheduleParams): DaySchedule[] {
 	const isMinutesCadence = prepTimeCadence !== PREP_TIME_CADENCE.DAY;
+	const defaultPrep = defaultPrepTimeInMinutes ?? 0;
 	let shiftStartDateWithPrepTime: Date | null = null;
 	return dates
 		.map((date, index) => {
@@ -118,7 +116,7 @@ export function generateSchedule({
 			});
 
 			const weekDayPrepTime =
-				weekDayPrepTimes[zonedDate.dayOfWeek] ?? DEFAULT_PREP_TIME_IN_MINUTES;
+				weekDayPrepTimes[zonedDate.dayOfWeek] ?? defaultPrep;
 
 			const storeTimes = {
 				openingTime: null as Date | null,
@@ -170,7 +168,7 @@ export function generateSchedule({
 							currentDate instanceof Date ? currentDate : new Date(currentDate);
 						const currentDateWithPrepTime = addMinutes(
 							new Date(Math.max(baseDate.getTime(), openingTime.getTime())),
-							Math.max(DEFAULT_PREP_TIME_IN_MINUTES, weekDayPrepTime),
+							Math.max(defaultPrep, weekDayPrepTime),
 						);
 
 						if (isAfter(currentDateWithPrepTime, shiftEndDate)) {

@@ -1,6 +1,6 @@
 import { addHours, differenceInDays } from "date-fns";
 import {
-	DEFAULT_TIMEZONE,
+	DEFAULT_PREP_TIME_IN_MINUTES,
 	FULFILLMENT_TYPES,
 	MINUTES_PER_DAY,
 	PREP_TIME_CADENCE,
@@ -209,8 +209,11 @@ export function getSchedules({
 		prepTimeFrequency,
 		prepTimeCadence,
 		weekDayPrepTimes,
-		totalCateringPrepTimeInHours,
+		totalCateringPrepTimeInHours = 0,
 	} = resolvedPrepTime;
+
+	const defaultPrepTimeInMinutes =
+		prepTimeSettings.defaultPrepTimeInMinutes ?? DEFAULT_PREP_TIME_IN_MINUTES;
 
 	const busyTimes = busyTimesByLocationId?.[currentLocation.location_id] ?? [];
 
@@ -246,6 +249,7 @@ export function getSchedules({
 				gapInMinutes,
 				daysCount: 7,
 				preSaleDates: weeklyPickupDates,
+				defaultPrepTimeInMinutes,
 			});
 			const filteredSchedule = filterSchedule(schedule);
 			if (cart.hasWeeklyPreSaleItem) {
@@ -293,6 +297,7 @@ export function getSchedules({
 		gapInMinutes,
 		daysCount: effectiveDaysCount,
 		isCatering: isCateringFlow,
+		defaultPrepTimeInMinutes,
 		...(!isPreSaleEnabled && {
 			weekDayPrepTimes,
 		}),

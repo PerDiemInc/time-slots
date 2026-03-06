@@ -23,6 +23,7 @@ export interface GenerateScheduleParams {
 	prepTimeBehaviour?: number;
 	prepTimeInMinutes?: number;
 	weekDayPrepTimes?: Record<number, number>;
+	defaultPrepTimeInMinutes?: number;
 	timeZone: string;
 	dates?: Date[];
 	businessHours?: BusinessHour[];
@@ -53,6 +54,7 @@ export interface GenerateLocationFulfillmentScheduleParams {
 	prepTimeFrequency?: number;
 	prepTimeCadence?: PrepTimeCadence;
 	weekDayPrepTimes?: Record<number, number>;
+	defaultPrepTimeInMinutes?: number;
 	location: LocationLike;
 	fulfillmentPreference: FulfillmentPreference;
 	/** Overrides for this location only (not keyed by location_id). */
