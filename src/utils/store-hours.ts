@@ -5,9 +5,8 @@ import { getNextAvailableDates } from "../schedule/available-dates";
 import type {
 	BusinessHour,
 	BusinessHoursOverrideOutput,
-	FulfillmentPreference,
 	GetOpeningClosingTimeOnDateParams,
-	LocationLike,
+	GetOpeningClosingTimeParams,
 } from "../types";
 import { getLocationBusinessHoursForFulfillment } from "./business-hours";
 import { isMidnightTransition, isTodayInTimeZone, setHmOnDate } from "./date";
@@ -204,14 +203,15 @@ export function getOpeningClosingTime({
 	location,
 	fulfillmentPreference,
 	businessHoursOverrides,
-}: {
-	location: LocationLike;
-	fulfillmentPreference: FulfillmentPreference;
-	businessHoursOverrides?: Record<string, BusinessHoursOverrideOutput[]>;
-}): { openingTime: Date; closingTime: Date } | null {
+	isCatering = false,
+}: GetOpeningClosingTimeParams): {
+	openingTime: Date;
+	closingTime: Date;
+} | null {
 	const businessHours = getLocationBusinessHoursForFulfillment(
 		location,
 		fulfillmentPreference,
+		isCatering,
 	);
 
 	return getOpeningClosingTimeOnDate({
