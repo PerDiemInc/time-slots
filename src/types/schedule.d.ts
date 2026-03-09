@@ -79,3 +79,10 @@ export interface GetOpeningClosingTimeOnDateParams {
 	businessHoursOverrides?: BusinessHoursOverrideOutput[];
 	timeZone: string;
 }
+
+export interface GetOpeningClosingTimeParams {
+	location: LocationLike;
+	fulfillmentPreference: FulfillmentPreference;
+	businessHoursOverrides?: Record<string, BusinessHoursOverrideOutput[]>;
+	isCatering?: boolean;
+}
