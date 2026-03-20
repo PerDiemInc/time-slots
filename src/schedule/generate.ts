@@ -91,6 +91,7 @@ export function generateSchedule({
 	preSaleHoursOverride,
 	gapInMinutes = 15,
 	prepTimeCadence = null,
+	prepTimeFrequency = 0,
 }: GenerateScheduleParams): DaySchedule[] {
 	const isMinutesCadence = prepTimeCadence !== PREP_TIME_CADENCE.DAY;
 	const defaultPrep = defaultPrepTimeInMinutes ?? 0;
@@ -163,12 +164,13 @@ export function generateSchedule({
 					);
 
 					if (isTodayInTimeZone(date, timeZone)) {
+						const todayPrepTime = isMinutesCadence ? prepTimeFrequency : 0; //if the prep time cadence is minutes, we need to add the prep time frequency to the prep time only for today
 						const openingTime = storeTimes.openingTime ?? new Date(0);
 						const baseDate =
 							currentDate instanceof Date ? currentDate : new Date(currentDate);
 						const currentDateWithPrepTime = addMinutes(
 							new Date(Math.max(baseDate.getTime(), openingTime.getTime())),
-							Math.max(defaultPrep, weekDayPrepTime),
+							Math.max(defaultPrep, weekDayPrepTime, todayPrepTime),
 						);
 
 						if (isAfter(currentDateWithPrepTime, shiftEndDate)) {

@@ -55,5 +55,6 @@ export function generateLocationFulfillmentSchedule({
 		preSaleHoursOverride,
 		gapInMinutes,
 		prepTimeCadence,
+		prepTimeFrequency
 	});
 }
