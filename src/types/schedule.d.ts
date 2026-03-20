@@ -36,6 +36,7 @@ export interface GenerateScheduleParams {
 	}> | null;
 	gapInMinutes?: number;
 	prepTimeCadence?: PrepTimeCadence;
+	prepTimeFrequency?: number;
 }
 export interface GetNextAvailableDatesParams {
 	startDate: Date;
