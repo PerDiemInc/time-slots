@@ -13,8 +13,6 @@ export function generateLocationFulfillmentSchedule({
 	currentDate = new Date(),
 	prepTimeFrequency = 0,
 	prepTimeCadence = PREP_TIME_CADENCE.MINUTE,
-	weekDayPrepTimes,
-	defaultPrepTimeInMinutes,
 	location,
 	fulfillmentPreference,
 	businessHoursOverrides = [],
@@ -24,6 +22,9 @@ export function generateLocationFulfillmentSchedule({
 	preSaleDates = [],
 	endDate = null,
 	isCatering = false,
+	openingBuffer = 0,
+	closingBuffer = 0,
+	estimatedDeliveryMinutes = 0,
 }: GenerateLocationFulfillmentScheduleParams): FulfillmentSchedule {
 	const isDaysCadence = prepTimeCadence === PREP_TIME_CADENCE.DAY;
 	const businessHours = getLocationBusinessHoursForFulfillment(
@@ -46,8 +47,6 @@ export function generateLocationFulfillmentSchedule({
 	const availableDates = isDaysCadence ? dates.slice(prepTimeFrequency) : dates;
 	return generateSchedule({
 		currentDate: roundToNearestMinutes(currentDate),
-		weekDayPrepTimes,
-		defaultPrepTimeInMinutes,
 		timeZone: location.timezone,
 		dates: availableDates,
 		businessHours,
@@ -55,6 +54,9 @@ export function generateLocationFulfillmentSchedule({
 		preSaleHoursOverride,
 		gapInMinutes,
 		prepTimeCadence,
-		prepTimeFrequency
+		prepTimeFrequency,
+		openingBuffer,
+		closingBuffer,
+		estimatedDeliveryMinutes,
 	});
 }

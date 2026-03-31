@@ -1,9 +1,8 @@
-export type { FulfillmentType, PrepTimeBehaviourType } from "./constants";
+export type { FulfillmentType } from "./constants";
 export {
 	DEFAULT_GAP_IN_MINUTES,
 	DEFAULT_PREP_TIME_IN_MINUTES,
 	FULFILLMENT_TYPES,
-	PrepTimeBehaviour,
 } from "./constants";
 export { getSchedules } from "./schedule/get-schedules";
 export * from "./types";

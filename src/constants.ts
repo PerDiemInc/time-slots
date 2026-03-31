@@ -14,18 +14,6 @@ export type FulfillmentType =
 export const DEFAULT_GAP_IN_MINUTES = 15;
 export const DEFAULT_PREP_TIME_IN_MINUTES = 5;
 export const MINUTES_PER_DAY = 1440;
-/**
- * Prep time behaviour when computing first available slot.
- */
-export const PrepTimeBehaviour = Object.freeze({
-	FIRST_SHIFT: 0,
-	EVERY_SHIFT: 1,
-	ROLL_FROM_FIRST_SHIFT: 2,
-});
-
-export type PrepTimeBehaviourType =
-	(typeof PrepTimeBehaviour)[keyof typeof PrepTimeBehaviour];
-
 export const PREP_TIME_CADENCE = {
 	MINUTE: "minute",
 	DAY: "day",
