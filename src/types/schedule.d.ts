@@ -37,6 +37,8 @@ export interface GenerateScheduleParams {
 	closingBuffer?: number;
 	/** For DELIVERY: added on top of the computed first slot on every day. */
 	estimatedDeliveryMinutes?: number;
+	/** Number of open business days skipped for minute cadence (≥1 day prep). */
+	minuteCadenceDaysSkipped?: number;
 }
 export interface GetNextAvailableDatesParams {
 	startDate: Date;

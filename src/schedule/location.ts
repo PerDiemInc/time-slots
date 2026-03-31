@@ -1,5 +1,5 @@
 import { roundToNearestMinutes } from "date-fns";
-import { PREP_TIME_CADENCE } from "../constants";
+import { MINUTES_PER_DAY, PREP_TIME_CADENCE } from "../constants";
 import type {
 	FulfillmentSchedule,
 	GenerateLocationFulfillmentScheduleParams,
@@ -33,6 +33,13 @@ export function generateLocationFulfillmentSchedule({
 		isCatering,
 	);
 
+	// DAY cadence: prepTimeFrequency is already in days.
+	// MINUTE cadence: convert minutes - full days to skip, remainder applied on target day.
+	const minuteCadenceDaysSkipped = !isDaysCadence
+		? Math.floor(prepTimeFrequency / MINUTES_PER_DAY)
+		: 0;
+	const hasDaySkipping = isDaysCadence || minuteCadenceDaysSkipped > 0;
+
 	const dates = getNextAvailableDates({
 		startDate: startDate || currentDate,
 		businessHours,
@@ -41,10 +48,21 @@ export function generateLocationFulfillmentSchedule({
 		datesCount: daysCount,
 		preSaleDates,
 		endDate,
-		isDaysCadence,
+		isDaysCadence: hasDaySkipping,
 	});
-	// If prepTimeCadence is days, we need to skip opening days by prepTimeFrequency
-	const availableDates = isDaysCadence ? dates.slice(prepTimeFrequency) : dates;
+
+	const daysToSkip = isDaysCadence
+		? prepTimeFrequency
+		: minuteCadenceDaysSkipped;
+	const availableDates = daysToSkip > 0 ? dates.slice(daysToSkip) : dates;
+
+	// For minute cadence with day skipping, only pass the remaining minutes
+	// so generateSchedule doesn't double-apply the skipped days as prep time.
+	const effectivePrepFrequency =
+		minuteCadenceDaysSkipped > 0
+			? prepTimeFrequency % MINUTES_PER_DAY
+			: prepTimeFrequency;
+
 	return generateSchedule({
 		currentDate: roundToNearestMinutes(currentDate),
 		timeZone: location.timezone,
@@ -54,7 +72,8 @@ export function generateLocationFulfillmentSchedule({
 		preSaleHoursOverride,
 		gapInMinutes,
 		prepTimeCadence,
-		prepTimeFrequency,
+		prepTimeFrequency: effectivePrepFrequency,
+		minuteCadenceDaysSkipped,
 		openingBuffer,
 		closingBuffer,
 		estimatedDeliveryMinutes,

@@ -201,9 +201,9 @@ describe("preptimeByMinutes", () => {
 			beforeEach(() =>
 				applyPrepAtOrderDate(new Date("2025-01-06T21:00:00.000Z"), MINUTES_24H),
 			);
-			it("should return first slot Wednesday 8:00 AM", () => {
+			it("should return first slot Thursday 8:00 AM (Mon past closing → not counted, skip Tue, land Wed, project 9 PM > closing → Thu)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-08T08:00:00.000Z"),
+					new Date("2025-01-09T08:00:00.000Z"),
 				);
 			});
 		});
@@ -212,9 +212,9 @@ describe("preptimeByMinutes", () => {
 			beforeEach(() =>
 				applyPrepAtOrderDate(new Date("2025-01-06T23:00:00.000Z"), MINUTES_24H),
 			);
-			it("should return first slot Wednesday 8:00 AM", () => {
+			it("should return first slot Thursday 8:00 AM (Mon past closing → not counted, skip Tue, land Wed, project 11 PM > closing → Thu)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-08T08:00:00.000Z"),
+					new Date("2025-01-09T08:00:00.000Z"),
 				);
 			});
 		});
@@ -225,9 +225,9 @@ describe("preptimeByMinutes", () => {
 			beforeEach(() =>
 				applyPrepAtOrderDate(new Date("2025-01-11T14:00:00.000Z"), MINUTES_24H),
 			);
-			it("should return first slot Monday 8:00 AM", () => {
+			it("should return first slot Monday 2:00 PM (skip 1 open day, preserve time-of-day)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-13T08:00:00.000Z"),
+					new Date("2025-01-13T14:00:00.000Z"),
 				);
 			});
 		});
@@ -236,7 +236,7 @@ describe("preptimeByMinutes", () => {
 			beforeEach(() =>
 				applyPrepAtOrderDate(new Date("2025-01-11T08:00:00.000Z"), MINUTES_24H),
 			);
-			it("should return first slot Monday 8:00 AM", () => {
+			it("should return first slot Monday 8:00 AM (skip 1 open day, time = opening)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
 					new Date("2025-01-13T08:00:00.000Z"),
 				);
@@ -247,9 +247,9 @@ describe("preptimeByMinutes", () => {
 			beforeEach(() =>
 				applyPrepAtOrderDate(new Date("2025-01-11T18:00:00.000Z"), MINUTES_24H),
 			);
-			it("should return first slot Monday 8:00 AM", () => {
+			it("should return first slot Monday 6:00 PM (skip 1 open day, preserve time-of-day)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-13T08:00:00.000Z"),
+					new Date("2025-01-13T18:00:00.000Z"),
 				);
 			});
 		});
@@ -258,9 +258,9 @@ describe("preptimeByMinutes", () => {
 			beforeEach(() =>
 				applyPrepAtOrderDate(new Date("2025-01-11T22:00:00.000Z"), MINUTES_24H),
 			);
-			it("should return first slot Monday 8:00 AM", () => {
+			it("should return first slot Wednesday 8:00 AM (Sat past closing → not counted, Sun closed, skip Mon, land Tue, project 10 PM > closing → Wed)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-13T08:00:00.000Z"),
+					new Date("2025-01-15T08:00:00.000Z"),
 				);
 			});
 		});
@@ -269,9 +269,9 @@ describe("preptimeByMinutes", () => {
 			beforeEach(() =>
 				applyPrepAtOrderDate(new Date("2025-01-12T10:00:00.000Z"), MINUTES_24H),
 			);
-			it("should return first slot Monday 8:00 AM", () => {
+			it("should return first slot Tuesday 10:00 AM (skip 1 open day from Mon, preserve time-of-day)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-13T08:00:00.000Z"),
+					new Date("2025-01-14T10:00:00.000Z"),
 				);
 			});
 		});
@@ -280,9 +280,9 @@ describe("preptimeByMinutes", () => {
 			beforeEach(() =>
 				applyPrepAtOrderDate(new Date("2025-01-12T19:00:00.000Z"), MINUTES_24H),
 			);
-			it("should return first slot Monday 8:00 AM", () => {
+			it("should return first slot Tuesday 7:00 PM (skip 1 open day from Mon, preserve time-of-day)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-13T08:00:00.000Z"),
+					new Date("2025-01-14T19:00:00.000Z"),
 				);
 			});
 		});
@@ -339,9 +339,9 @@ describe("preptimeByMinutes", () => {
 			beforeEach(() =>
 				applyPrepAtOrderDate(new Date("2025-01-11T11:00:00.000Z"), MINUTES_24H),
 			);
-			it("should return first slot Monday 8:00 AM", () => {
+			it("should return first slot Monday 11:00 AM (skip 1 open day, preserve time-of-day)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-13T08:00:00.000Z"),
+					new Date("2025-01-13T11:00:00.000Z"),
 				);
 			});
 		});
@@ -365,9 +365,9 @@ describe("preptimeByMinutes", () => {
 			beforeEach(() =>
 				applyPrepAtOrderDate(new Date("2025-01-10T21:00:00.000Z"), MINUTES_24H),
 			);
-			it("should return first slot Monday 8:00 AM", () => {
+			it("should return first slot Tuesday 8:00 AM (Fri past closing → not counted, skip Sat, land Mon, project 9 PM > closing → Tue)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-13T08:00:00.000Z"),
+					new Date("2025-01-14T08:00:00.000Z"),
 				);
 			});
 		});
@@ -439,9 +439,9 @@ describe("preptimeByMinutes", () => {
 			beforeEach(() =>
 				applyPrepAtOrderDate(new Date("2025-01-06T21:00:00.000Z"), MINUTES_48H),
 			);
-			it("should return first slot Thursday 8:00 AM (48h lands after Wednesday closing, roll to next opening)", () => {
+			it("should return first slot Friday 8:00 AM (Mon past closing → not counted, skip Tue+Wed, land Thu, project 9 PM > closing → Fri)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-09T08:00:00.000Z"),
+					new Date("2025-01-10T08:00:00.000Z"),
 				);
 			});
 		});
@@ -450,9 +450,9 @@ describe("preptimeByMinutes", () => {
 			beforeEach(() =>
 				applyPrepAtOrderDate(new Date("2025-01-10T14:00:00.000Z"), MINUTES_48H),
 			);
-			it("should return first slot Monday 8:00 AM (skips Sunday when closed)", () => {
+			it("should return first slot Monday 2:00 PM (skip 2 open days, preserve time-of-day)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-13T08:00:00.000Z"),
+					new Date("2025-01-13T14:00:00.000Z"),
 				);
 			});
 		});
@@ -461,9 +461,9 @@ describe("preptimeByMinutes", () => {
 			beforeEach(() =>
 				applyPrepAtOrderDate(new Date("2025-01-11T10:00:00.000Z"), MINUTES_48H),
 			);
-			it("should return first slot Monday 10:00 AM", () => {
+			it("should return first slot Tuesday 10:00 AM (skip 2 open days: Sat→Mon→Tue)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-13T10:00:00.000Z"),
+					new Date("2025-01-14T10:00:00.000Z"),
 				);
 			});
 		});
@@ -485,9 +485,9 @@ describe("preptimeByMinutes", () => {
 			beforeEach(() =>
 				applyPrepAtOrderDate(new Date("2025-01-10T14:00:00.000Z"), MINUTES_72H),
 			);
-			it("should return first slot Monday 2:00 PM (72h = exactly Monday 2 PM)", () => {
+			it("should return first slot Tuesday 2:00 PM (skip 3 open days: Fri→Sat→Mon→Tue)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-13T14:00:00.000Z"),
+					new Date("2025-01-14T14:00:00.000Z"),
 				);
 			});
 		});

@@ -1,7 +1,6 @@
 import {
 	addMinutes,
 	compareAsc,
-	differenceInMinutes,
 	eachMinuteOfInterval,
 	isAfter,
 	isBefore,
@@ -16,62 +15,12 @@ import type {
 	GenerateScheduleParams,
 } from "../types";
 import {
-	isSameDateInTimeZone,
 	isTodayInTimeZone,
 	isZeroPrepTimeForMidnightShift,
 	setHmOnDate,
 } from "../utils/date";
 
 // ── Private helpers ─────────────────────────────────────────────────────────
-
-function calculateRemainingMinutesAfterRollover(
-	now: Date,
-	prepTimeMinutes: number,
-	businessHours: BusinessHour[],
-	timeZone: string,
-): { targetDate: Date; remainingMinutes: number; shouldRollover: boolean } {
-	const targetTime = addMinutes(now, prepTimeMinutes);
-
-	const zonedNow = getZonedTime(now, findTimeZone(timeZone));
-	const zonedTarget = getZonedTime(targetTime, findTimeZone(timeZone));
-	const isDifferentDay =
-		zonedNow.day !== zonedTarget.day || zonedNow.month !== zonedTarget.month;
-
-	if (!isDifferentDay) {
-		return {
-			targetDate: targetTime,
-			remainingMinutes: 0,
-			shouldRollover: false,
-		};
-	}
-
-	const targetDayOfWeek = zonedTarget.dayOfWeek ?? 0;
-	const targetDayBusinessHours = businessHours.filter(
-		(bh) => bh.day === targetDayOfWeek,
-	);
-
-	if (targetDayBusinessHours.length === 0) {
-		return {
-			targetDate: targetTime,
-			remainingMinutes: 0,
-			shouldRollover: true,
-		};
-	}
-
-	const firstShift = targetDayBusinessHours[0];
-	const openingTime = setHmOnDate(targetTime, firstShift.startTime, timeZone);
-
-	let remainingMinutes = 0;
-	if (isAfter(targetTime, openingTime)) {
-		remainingMinutes = differenceInMinutes(targetTime, openingTime);
-	}
-
-	return {
-		targetDate: targetTime,
-		remainingMinutes,
-		shouldRollover: true,
-	};
-}
 
 interface GetSelectedBusinessHoursParams {
 	businessHours?: BusinessHour[];
@@ -92,12 +41,9 @@ function getSelectedBusinessHours({
 	date,
 	timeZone,
 	preSaleHoursOverride,
-}: GetSelectedBusinessHoursParams): [
-	BusinessHour[],
-	ReturnType<typeof getZonedTime>,
-] {
+}: GetSelectedBusinessHoursParams): BusinessHour[] {
 	if (!date || !timeZone) {
-		return [[], getZonedTime(new Date(), findTimeZone(timeZone ?? "UTC"))];
+		return [];
 	}
 
 	const zonedDate = getZonedTime(date, findTimeZone(timeZone));
@@ -110,7 +56,7 @@ function getSelectedBusinessHours({
 			zonedDate.month === override.month && zonedDate.day === override.day,
 	);
 
-	const selectedBusinessHours: BusinessHour[] = preSaleHoursOverride
+	return preSaleHoursOverride
 		? preSaleHoursOverride.map((o) => ({
 				day: dayOfWeek,
 				startTime: o.startTime,
@@ -123,8 +69,22 @@ function getSelectedBusinessHours({
 					endTime: o.endTime ?? "23:59",
 				}))
 			: (dayBusinessHours ?? []);
+}
 
-	return [selectedBusinessHours, zonedDate];
+/**
+ * Project the time-of-day from `source` onto `targetDate` in the given timezone.
+ * e.g. source = Sat 2:30 PM, targetDate = Mon → Mon 2:30 PM (in timezone).
+ */
+function projectTimeOfDay(
+	source: Date,
+	targetDate: Date,
+	timeZone: string,
+): Date {
+	const tz = findTimeZone(timeZone);
+	const zonedSource = getZonedTime(source, tz);
+	const hh = String(zonedSource.hours).padStart(2, "0");
+	const mm = String(zonedSource.minutes).padStart(2, "0");
+	return setHmOnDate(targetDate, `${hh}:${mm}`, timeZone);
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
@@ -139,6 +99,7 @@ export function generateSchedule({
 	gapInMinutes = 15,
 	prepTimeCadence = null,
 	prepTimeFrequency = 0,
+	minuteCadenceDaysSkipped = 0,
 	openingBuffer = 0,
 	closingBuffer = 0,
 	estimatedDeliveryMinutes = 0,
@@ -147,53 +108,11 @@ export function generateSchedule({
 	const isDayCadence = prepTimeCadence === PREP_TIME_CADENCE.DAY;
 	let shiftStartDateWithPrepTime: Date | null = null;
 
-	// Prep time only applies to today (minute cadence) or via day-skipping (day cadence).
-	// Future days always start at opening + buffers with no prep offset.
-	const zonedCurrent = getZonedTime(currentDate, findTimeZone(timeZone));
-	const todayDayOfWeek = zonedCurrent.dayOfWeek ?? 0;
-	const todayPrepTime = isMinutesCadence ? prepTimeFrequency : 0;
-
-	// Check if today has business hours - if not, don't apply prep time rollover
-	const todayBusinessHours = businessHours.filter(
-		(bh) => bh.day === todayDayOfWeek,
-	);
-	const hasBusinessHoursToday = todayBusinessHours.length > 0;
-
-	// For DAY cadence: dates are already filtered in generateLocationFulfillmentSchedule
-	// which does: dates.slice(prepTimeFrequency)
-	// So we don't need to filter here for DAY cadence.
-	// For MINUTE cadence: Check if prep time exceeds today's closing and filter dates accordingly
-	let effectiveDates = dates;
-	let minuteRolloverInfo: {
-		targetDate: Date;
-		remainingMinutes: number;
-		shouldRollover: boolean;
-	} | null = null;
-
-	if (isMinutesCadence && todayPrepTime > 0 && hasBusinessHoursToday) {
-		const rolloverResult = calculateRemainingMinutesAfterRollover(
-			currentDate,
-			todayPrepTime,
-			businessHours,
-			timeZone,
-		);
-		minuteRolloverInfo = rolloverResult;
-		// If rollover is needed, filter dates to only include from target date onwards
-		if (rolloverResult.shouldRollover) {
-			const targetDate = rolloverResult.targetDate;
-			effectiveDates = effectiveDates.filter((date) => {
-				return (
-					date >= targetDate || isSameDateInTimeZone(date, targetDate, timeZone)
-				);
-			});
-		}
-	}
-
-	return effectiveDates
+	return dates
 		.map((date, index) => {
-			const lastDate = effectiveDates?.[index - 1];
+			const lastDate = dates?.[index - 1];
 
-			const [selectedBusinessHours] = getSelectedBusinessHours({
+			const selectedBusinessHours = getSelectedBusinessHours({
 				businessHours,
 				businessHoursOverrides,
 				date,
@@ -201,7 +120,7 @@ export function generateSchedule({
 				preSaleHoursOverride,
 			});
 
-			const [prevSelectedBusinessHours] = getSelectedBusinessHours({
+			const prevSelectedBusinessHours = getSelectedBusinessHours({
 				businessHours,
 				businessHoursOverrides,
 				date: lastDate,
@@ -228,25 +147,20 @@ export function generateSchedule({
 
 			// Track if previous day ended in midnight spill (so today's closing buffer should be applied)
 			let prevDayEndedInMidnightSpill = false;
-			if (lastDate) {
-				const [prevHours] = getSelectedBusinessHours({
-					businessHours,
-					businessHoursOverrides,
-					date: lastDate,
-					timeZone,
-					preSaleHoursOverride,
-				});
-				if (prevHours.length > 0) {
-					const prevLastShift = prevHours[prevHours.length - 1];
-					prevDayEndedInMidnightSpill =
-						prevLastShift.endTime === "24:00" ||
-						prevLastShift.endTime === "23:59";
-				}
+			if (prevSelectedBusinessHours.length > 0) {
+				const prevLastShift =
+					prevSelectedBusinessHours[prevSelectedBusinessHours.length - 1];
+				prevDayEndedInMidnightSpill =
+					prevLastShift.endTime === "24:00" ||
+					prevLastShift.endTime === "23:59";
 			}
 
-			// For DAY cadence: the first date in effectiveDates IS the target date (after slicing in location.ts)
-			// For MINUTE cadence: check if this is the rollover target date
+			// For DAY cadence: the first date in dates IS the target date (after slicing in location.ts)
 			const isDayCadenceFirstDate = isDayCadence && index === 0;
+			// For MINUTE cadence with ≥1 day of prep: days were skipped via dates.slice()
+			// in location.ts, so the first date here is the target day.
+			const isMinuteCadenceFirstDate =
+				isMinutesCadence && minuteCadenceDaysSkipped > 0 && index === 0;
 
 			const slots = selectedBusinessHours
 				.flatMap((businessHour, i) => {
@@ -294,10 +208,9 @@ export function generateSchedule({
 						storeTimes.closingTime = shiftEndDate;
 					}
 
-					if (!isBefore(effectiveShiftStart, shiftEndDate)) {
-						if (isMinutesCadence) {
-							shiftStartDateWithPrepTime = null;
-						}
+					if (isAfter(effectiveShiftStart, shiftEndDate)) {
+						// Shift fully skipped — keep shiftStartDateWithPrepTime so it
+						// can carry forward to the next shift or day.
 						return [];
 					}
 
@@ -308,66 +221,54 @@ export function generateSchedule({
 						{ step: gapInMinutes },
 					);
 
-					// ── Today logic ──────────────────────────────────────────────────
-					// Check if this is the "effective today" - either actual today,
-					// or the target date for DAY cadence, or a rolled-over date for MINUTE cadence
+					// ── Today / first-date logic ────────────────────────────────────
 					const isActualToday = isTodayInTimeZone(date, timeZone);
-					// For DAY cadence: the first date in effectiveDates IS the target date
-					// For MINUTE cadence: check if this is the rollover target date
-					const isRolloverDate =
-						isMinutesCadence &&
-						minuteRolloverInfo &&
-						!isSameDateInTimeZone(
-							currentDate,
-							minuteRolloverInfo.targetDate,
-							timeZone,
-						) &&
-						isSameDateInTimeZone(date, minuteRolloverInfo.targetDate, timeZone);
 
-					if (isActualToday || isDayCadenceFirstDate || isRolloverDate) {
+					if (
+						isActualToday ||
+						isDayCadenceFirstDate ||
+						isMinuteCadenceFirstDate
+					) {
 						const openingTime = storeTimes.openingTime ?? new Date(0);
-						const baseDate =
-							currentDate instanceof Date ? currentDate : new Date(currentDate);
 
 						let effectiveFirstSlot: Date;
 
 						if (isFirstShift) {
 							if (isDayCadenceFirstDate) {
-								// DAY cadence: first slot = opening + buffer (no prep time on future days)
+								// DAY cadence: first slot = opening + buffer
 								effectiveFirstSlot = addMinutes(openingTime, openingBuffer);
-							} else if (isRolloverDate && minuteRolloverInfo) {
-								// MINUTE cadence rollover: use the rolled-over target time as "now"
-								const targetTime = minuteRolloverInfo.targetDate;
-								const remainingMinutes = minuteRolloverInfo.remainingMinutes;
-
-								if (isBefore(targetTime, openingTime)) {
-									// Target time is before opening: first slot = opening + max(buffer, remainingMinutes)
-									effectiveFirstSlot = addMinutes(
-										openingTime,
-										Math.max(openingBuffer, remainingMinutes),
-									);
-								} else {
-									// Target time is at or after opening: first slot = max(targetTime, opening + buffer)
-									const openingPlusBuffer = addMinutes(
-										openingTime,
-										openingBuffer,
-									);
-									effectiveFirstSlot = max([targetTime, openingPlusBuffer]);
-								}
+							} else if (isMinuteCadenceFirstDate) {
+								// MINUTE cadence with day skipping: project now's time-of-day
+								// onto the target date, then add any remaining prep minutes.
+								const projectedNow = projectTimeOfDay(
+									currentDate,
+									date,
+									timeZone,
+								);
+								const projectedWithPrep = addMinutes(
+									projectedNow,
+									prepTimeFrequency,
+								);
+								const openingPlusBuffer = addMinutes(
+									openingTime,
+									openingBuffer,
+								);
+								effectiveFirstSlot = max([
+									projectedWithPrep,
+									openingPlusBuffer,
+								]);
 							} else {
 								// Actual today with MINUTE cadence
-								// Prep time only applies to today (from prepTimeFrequency)
-								const prepTimeMinutes = isMinutesCadence ? todayPrepTime : 0;
-
-								if (isBefore(baseDate, openingTime)) {
-									// Now is before opening: first slot = opening + max(buffer, prepTime)
+								if (isBefore(currentDate, openingTime)) {
 									effectiveFirstSlot = addMinutes(
 										openingTime,
-										Math.max(openingBuffer, prepTimeMinutes),
+										Math.max(openingBuffer, prepTimeFrequency),
 									);
 								} else {
-									// Now is at or after opening: first slot = max(now + prepTime, opening + buffer)
-									const nowPlusPrep = addMinutes(baseDate, prepTimeMinutes);
+									const nowPlusPrep = addMinutes(
+										currentDate,
+										prepTimeFrequency,
+									);
 									const openingPlusBuffer = addMinutes(
 										openingTime,
 										openingBuffer,
@@ -436,21 +337,24 @@ export function generateSchedule({
 						effectiveOpeningBuffer + estimatedDeliveryMinutes,
 					);
 
-					if (prepTimeSlot > shiftEndDate) {
-						if (isMinutesCadence) {
-							shiftStartDateWithPrepTime = prepTimeSlot;
-						}
-						shiftStartDateWithPrepTime = prepTimeSlot;
+					// Use the later of prepTimeSlot and effectiveShiftStart, so that
+					// prep-time rollover from a prior day is respected.
+					const effectiveFirstSlot = max([prepTimeSlot, effectiveShiftStart]);
+
+					if (isAfter(effectiveFirstSlot, shiftEndDate)) {
+						shiftStartDateWithPrepTime = effectiveFirstSlot;
 						return [];
 					}
 
-					if (prepTimeSlot < startDate) {
+					if (isBefore(effectiveFirstSlot, startDate)) {
 						storeTimes.remainingShifts += 1;
 						return fixedSlots;
 					}
 
-					const slotDates = fixedSlots.filter((d) => isAfter(d, prepTimeSlot));
-					slotDates.unshift(prepTimeSlot);
+					const slotDates = fixedSlots.filter((d) =>
+						isAfter(d, effectiveFirstSlot),
+					);
+					slotDates.unshift(effectiveFirstSlot);
 					storeTimes.remainingShifts += 1;
 					shiftStartDateWithPrepTime = null;
 					return slotDates;
