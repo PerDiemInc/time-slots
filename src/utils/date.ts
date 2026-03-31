@@ -124,6 +124,14 @@ export function isMidnightTransition(
 	);
 }
 
+export function lastShiftEndsAtMidnight(
+	businessHours: BusinessHour[],
+): boolean {
+	if (!businessHours.length) return false;
+	const lastShift = businessHours[businessHours.length - 1];
+	return lastShift.endTime === "24:00" || lastShift.endTime === "23:59";
+}
+
 export function isZeroPrepTimeForMidnightShift({
 	prevDayBusinessHours,
 	businessHour,

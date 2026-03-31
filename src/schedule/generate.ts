@@ -17,6 +17,7 @@ import type {
 import {
 	isTodayInTimeZone,
 	isZeroPrepTimeForMidnightShift,
+	lastShiftEndsAtMidnight,
 	setHmOnDate,
 } from "../utils/date";
 
@@ -144,23 +145,8 @@ export function generateSchedule({
 
 			// Track midnight spill: if today's last shift ends at 24:00, we need to
 			// apply closing buffer to tomorrow's last shift instead
-			let isTodayEndingInMidnightSpill = false;
-			if (selectedBusinessHours.length > 0) {
-				const lastShift =
-					selectedBusinessHours[selectedBusinessHours.length - 1];
-				isTodayEndingInMidnightSpill =
-					lastShift.endTime === "24:00" || lastShift.endTime === "23:59";
-			}
-
-			// Track if previous day ended in midnight spill (so today's closing buffer should be applied)
-			let prevDayEndedInMidnightSpill = false;
-			if (prevSelectedBusinessHours.length > 0) {
-				const prevLastShift =
-					prevSelectedBusinessHours[prevSelectedBusinessHours.length - 1];
-				prevDayEndedInMidnightSpill =
-					prevLastShift.endTime === "24:00" ||
-					prevLastShift.endTime === "23:59";
-			}
+			const isTodayEndingInMidnightSpill =
+				lastShiftEndsAtMidnight(selectedBusinessHours);
 
 			// For DAY cadence: the first date in dates IS the target date (after slicing in location.ts)
 			const isDayCadenceFirstDate = isDayCadence && index === 0;
@@ -187,10 +173,12 @@ export function generateSchedule({
 
 					// Check if this is a midnight spill continuation from previous day
 					// (first shift starts at 00:00 AND previous day ended at 24:00)
-					const isMidnightSpillContinuation =
+					const isMidnightShiftContinuation =
 						isFirstShift &&
-						businessHour.startTime === "00:00" &&
-						prevDayEndedInMidnightSpill;
+						isZeroPrepTimeForMidnightShift({
+							prevDayBusinessHours: prevSelectedBusinessHours,
+							businessHour,
+						});
 
 					// Determine if closing buffer should be applied:
 					// - Apply to last shift normally
@@ -199,7 +187,7 @@ export function generateSchedule({
 					const shouldApplyClosingBuffer =
 						isLastShift &&
 						!isTodayEndingInMidnightSpill &&
-						(!isMidnightSpillContinuation || !prevDayEndedInMidnightSpill);
+						!isMidnightShiftContinuation;
 
 					const rawEndDate = setHmOnDate(date, businessHour.endTime, timeZone);
 					const shiftEndDate = shouldApplyClosingBuffer
@@ -319,22 +307,17 @@ export function generateSchedule({
 					}
 
 					// ── Future day logic ─────────────────────────────────────────────
-					const allowZeroPrepTimeForMidnightShift =
-						isZeroPrepTimeForMidnightShift({
-							prevDayBusinessHours: prevSelectedBusinessHours,
-							businessHour,
-						});
 
 					// Opening buffer applies to the first shift only, and not to midnight-spill
 					// continuations (those are an extension of the previous day's last shift)
 					const effectiveOpeningBuffer =
-						isFirstShift && !allowZeroPrepTimeForMidnightShift
+						isFirstShift && !isMidnightShiftContinuation
 							? openingBuffer
 							: 0;
 					// Roll from the opening time for first shift; subsequent shifts from their own start
 					const rollFromDate =
 						isFirstShift &&
-						!allowZeroPrepTimeForMidnightShift &&
+						!isMidnightShiftContinuation &&
 						storeTimes.openingTime
 							? storeTimes.openingTime
 							: startDate;
