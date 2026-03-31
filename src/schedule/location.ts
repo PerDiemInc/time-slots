@@ -56,13 +56,6 @@ export function generateLocationFulfillmentSchedule({
 		: minuteCadenceDaysSkipped;
 	const availableDates = daysToSkip > 0 ? dates.slice(daysToSkip) : dates;
 
-	// For minute cadence with day skipping, only pass the remaining minutes
-	// so generateSchedule doesn't double-apply the skipped days as prep time.
-	const effectivePrepFrequency =
-		minuteCadenceDaysSkipped > 0
-			? prepTimeFrequency % MINUTES_PER_DAY
-			: prepTimeFrequency;
-
 	return generateSchedule({
 		currentDate: roundToNearestMinutes(currentDate),
 		timeZone: location.timezone,
@@ -72,8 +65,7 @@ export function generateLocationFulfillmentSchedule({
 		preSaleHoursOverride,
 		gapInMinutes,
 		prepTimeCadence,
-		prepTimeFrequency: effectivePrepFrequency,
-		minuteCadenceDaysSkipped,
+		prepTimeFrequency,
 		openingBuffer,
 		closingBuffer,
 		estimatedDeliveryMinutes,

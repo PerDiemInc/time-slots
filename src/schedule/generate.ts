@@ -7,7 +7,7 @@ import {
 	max,
 } from "date-fns";
 import { findTimeZone, getZonedTime } from "timezone-support";
-import { PREP_TIME_CADENCE } from "../constants";
+import { MINUTES_PER_DAY, PREP_TIME_CADENCE } from "../constants";
 import type {
 	BusinessHour,
 	BusinessHoursOverrideOutput,
@@ -99,13 +99,20 @@ export function generateSchedule({
 	gapInMinutes = 15,
 	prepTimeCadence = null,
 	prepTimeFrequency = 0,
-	minuteCadenceDaysSkipped = 0,
 	openingBuffer = 0,
 	closingBuffer = 0,
 	estimatedDeliveryMinutes = 0,
 }: GenerateScheduleParams): DaySchedule[] {
 	const isMinutesCadence = prepTimeCadence !== PREP_TIME_CADENCE.DAY;
 	const isDayCadence = prepTimeCadence === PREP_TIME_CADENCE.DAY;
+
+	const minuteCadenceDaysSkipped = isMinutesCadence
+		? Math.floor(prepTimeFrequency / MINUTES_PER_DAY)
+		: 0;
+	const effectivePrepMinutes =
+		minuteCadenceDaysSkipped > 0
+			? prepTimeFrequency % MINUTES_PER_DAY
+			: prepTimeFrequency;
 	let shiftStartDateWithPrepTime: Date | null = null;
 
 	return dates
@@ -247,7 +254,7 @@ export function generateSchedule({
 								);
 								const projectedWithPrep = addMinutes(
 									projectedNow,
-									prepTimeFrequency,
+									effectivePrepMinutes,
 								);
 								const openingPlusBuffer = addMinutes(
 									openingTime,
