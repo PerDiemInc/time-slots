@@ -58,14 +58,10 @@ export interface CartItem {
 export interface CateringPrepTimeResult {
 	prepTimeCadence: PrepTimeCadence;
 	prepTimeFrequency: number;
-	weekDayPrepTimes?: Record<number, number>;
-	totalCateringPrepTimeInHours: number; // we only need to add it in the first slot, not weekday prep times
 }
 
 export interface PrepTimeSettings {
 	prepTimeInMinutes: number;
-	defaultPrepTimeInMinutes?: number;
-	weekDayPrepTimes: Record<number, number>;
 	gapInMinutes: number;
 	busyTimes: Record<string, BusyTimeItem[]>;
 	prepTimeFrequency?: number;
@@ -75,9 +71,10 @@ export interface PrepTimeSettings {
 	 * when false, first slot of next day is at same time (e.g. 2:15pm tomorrow). Default false.
 	 */
 	fulfillAtBusinessDayStart: boolean;
-	/** When fulfillment is DELIVERY, added to each weekday prep time so slots reflect when order is received. */
+	/** When fulfillment is DELIVERY, added on top of prep time so slots reflect when order is received. */
 	estimatedDeliveryMinutes?: number;
-	totalCateringPrepTimeInHours?: number;
+	openingBuffer?: number;
+	closingBuffer?: number;
 }
 
 // ── getSchedules params / result ────────────────────────────────────────────
@@ -109,7 +106,6 @@ export interface InitScheduleParams {
 	daysCount?: number;
 	fulfillmentPreference: FulfillmentPreference;
 	prepTimeInMinutes: number;
-	weekDayPrepTimes: Record<number, number>;
 	hasCartWeeklyPreSaleItem: boolean;
 	busyTimes: BusyTimeItem[];
 	cartCategoryIds: string[];

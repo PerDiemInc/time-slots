@@ -4,38 +4,39 @@ import type {
 	GetCateringPrepTimeParams,
 } from "../types";
 
-const getTotalCateringPrepTimeInHours = (
-	prepTimeCadence: CateringPrepTimeResult["prepTimeCadence"],
-	prepTimeFrequency: number,
-) => {
-	if (prepTimeCadence === PREP_TIME_CADENCE.MINUTE) {
-		return Math.floor(prepTimeFrequency / 60);
-	}
-	if (prepTimeCadence === PREP_TIME_CADENCE.HOUR) {
-		return prepTimeFrequency;
-	}
-	return prepTimeFrequency * 24;
-};
 /**
- * Catering prep time is applied to the first slot only (not weekDayPrepTimes).
+ * Catering prep time is applied to the first slot only.
+ * DAY cadence is preserved so it flows through the same business-day-skip
+ * logic (dates.slice) as non-catering orders.
+ * HOUR cadence is converted to minutes so the standard minute-cadence
+ * rollover logic handles it.
  */
 function buildCateringPrepTimeResult(
 	prepTimeCadence: CateringPrepTimeResult["prepTimeCadence"],
 	prepTimeFrequency: number,
 ): CateringPrepTimeResult {
-	return {
-		prepTimeCadence: "minute",
-		prepTimeFrequency: 0,
-		weekDayPrepTimes: {},
-		totalCateringPrepTimeInHours: getTotalCateringPrepTimeInHours(
-			prepTimeCadence,
+	if (prepTimeCadence === PREP_TIME_CADENCE.DAY) {
+		return {
+			prepTimeCadence: PREP_TIME_CADENCE.DAY,
 			prepTimeFrequency,
-		),
+		};
+	}
+
+	// Convert HOUR → minutes so the existing minute-cadence rollover logic
+	// in generateSchedule handles it uniformly.
+	const frequencyInMinutes =
+		prepTimeCadence === PREP_TIME_CADENCE.HOUR
+			? prepTimeFrequency * 60
+			: prepTimeFrequency;
+
+	return {
+		prepTimeCadence: PREP_TIME_CADENCE.MINUTE,
+		prepTimeFrequency: frequencyInMinutes,
 	};
 }
 
 /**
- * Derives prep time config (cadence, frequency, weekDayPrepTimes) from cart items for catering flow.
+ * Derives prep time config (cadence, frequency) from cart items for catering flow.
  * DAY cadence has priority; if any item uses days, returns max day frequency.
  * Otherwise returns HOUR cadence with max hour frequency across items.
  * When items are empty or have no catering prep time, falls back to params (e.g. from prepTimeSettings).

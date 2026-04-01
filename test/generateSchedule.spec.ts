@@ -11,16 +11,6 @@ const allDaysBusinessHours = [
 	{ day: 6, startTime: "08:00", endTime: "20:00" },
 ];
 
-const zeroPrepTimes: Record<number, number> = {
-	0: 0,
-	1: 0,
-	2: 0,
-	3: 0,
-	4: 0,
-	5: 0,
-	6: 0,
-};
-
 describe("generateSchedule", () => {
 	describe("When passing 2 dates 2024-01-01 and 2024-01-02 and timezone as UTC", () => {
 		it("Should generate slots for those two dates", () => {
@@ -35,7 +25,7 @@ describe("generateSchedule", () => {
 				dates,
 				businessHours: allDaysBusinessHours,
 				gapInMinutes: 60,
-				weekDayPrepTimes: zeroPrepTimes,
+				prepTimeFrequency: 0,
 			});
 
 			expect(generatedSchedule.length).toBe(2);
@@ -69,7 +59,7 @@ describe("generateSchedule", () => {
 				dates,
 				businessHours: allDaysBusinessHours,
 				gapInMinutes: 60,
-				weekDayPrepTimes: zeroPrepTimes,
+				prepTimeFrequency: 0,
 			});
 
 			expect(generatedSchedule.length).toBe(1);
@@ -104,7 +94,7 @@ describe("generateSchedule", () => {
 				dates,
 				businessHours,
 				gapInMinutes: 60,
-				weekDayPrepTimes: zeroPrepTimes,
+				prepTimeFrequency: 0,
 			});
 
 			expect(generatedSchedule.length).toBe(1);

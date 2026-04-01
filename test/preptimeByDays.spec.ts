@@ -47,11 +47,9 @@ function makePrepTimeSettings(
 ): PrepTimeSettings {
 	return {
 		prepTimeInMinutes: 0,
-		weekDayPrepTimes: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
 		gapInMinutes: 15,
 		busyTimes: {},
 		fulfillAtBusinessDayStart: false,
-		totalCateringPrepTimeInHours: 0,
 		...overrides,
 	};
 }
@@ -99,56 +97,46 @@ describe("preptimeByDays", () => {
 
 	describe("when during normal store hours with 1 day prep time", () => {
 		describe("when current time is Monday 2:00 PM", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T14:00:00.000Z")),
-			);
-			it("should return first slot Tuesday 8:05 AM", () => {
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T14:00:00.000Z")));
+			it("should return first slot Tuesday 8:00 AM (prep time only applies to today, future days use buffer only)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-07T08:05:00.000Z"),
+					new Date("2025-01-07T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Monday 4:00 PM", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T16:00:00.000Z")),
-			);
-			it("should return first slot Tuesday 8:05 AM", () => {
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T16:00:00.000Z")));
+			it("should return first slot Tuesday 8:00 AM (prep time only applies to today, future days use buffer only)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-07T08:05:00.000Z"),
+					new Date("2025-01-07T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Monday 8:00 AM just opened", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T08:00:00.000Z")),
-			);
-			it("should return first slot Tuesday 8:05 AM", () => {
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T08:00:00.000Z")));
+			it("should return first slot Tuesday 8:00 AM (prep time only applies to today, future days use buffer only)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-07T08:05:00.000Z"),
+					new Date("2025-01-07T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Monday 7:59 PM about to close", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T19:59:00.000Z")),
-			);
-			it("should return first slot Tuesday 8:05 AM", () => {
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T19:59:00.000Z")));
+			it("should return first slot Tuesday 8:00 AM (prep time only applies to today, future days use buffer only)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-07T08:05:00.000Z"),
+					new Date("2025-01-07T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Tuesday 12:00 PM", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-07T12:00:00.000Z")),
-			);
-			it("should return first slot Wednesday 8:05 AM", () => {
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-07T12:00:00.000Z")));
+			it("should return first slot Wednesday 8:00 AM (prep time only applies to today, future days use buffer only)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-08T08:05:00.000Z"),
+					new Date("2025-01-08T08:00:00.000Z"),
 				);
 			});
 		});
@@ -156,67 +144,55 @@ describe("preptimeByDays", () => {
 
 	describe("when before or after store hours with 1 day prep time", () => {
 		describe("when current time is Monday 2:00 AM before open", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T02:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T02:00:00.000Z")));
 			it("should return first slot Tuesday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-07T08:05:00.000Z"),
+					new Date("2025-01-07T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Monday 6:00 AM before open", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T06:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T06:00:00.000Z")));
 			it("should return first slot Tuesday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-07T08:05:00.000Z"),
+					new Date("2025-01-07T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Monday 7:59 AM one minute before open", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T07:59:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T07:59:00.000Z")));
 			it("should return first slot Tuesday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-07T08:05:00.000Z"),
+					new Date("2025-01-07T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Monday 8:00 PM exactly at close", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T20:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T20:00:00.000Z")));
 			it("should return first slot Tuesday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-07T08:05:00.000Z"),
+					new Date("2025-01-07T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Monday 9:00 PM after close", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T21:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T21:00:00.000Z")));
 			it("should return first slot Wednesday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-08T08:05:00.000Z"),
+					new Date("2025-01-08T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Monday 11:59 PM late night", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T23:59:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T23:59:00.000Z")));
 			it("should return first slot Wednesday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-08T08:05:00.000Z"),
+					new Date("2025-01-08T08:00:00.000Z"),
 				);
 			});
 		});
@@ -224,67 +200,55 @@ describe("preptimeByDays", () => {
 
 	describe("when store is closed on Sunday with 1 day prep time", () => {
 		describe("when current time is Saturday 2:00 PM", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-11T14:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-11T14:00:00.000Z")));
 			it("should return first slot Monday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-13T08:05:00.000Z"),
+					new Date("2025-01-13T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Saturday 8:00 PM just closed", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-11T20:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-11T20:00:00.000Z")));
 			it("should return first slot Monday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-13T08:05:00.000Z"),
+					new Date("2025-01-13T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Saturday 10:00 PM after close", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-11T22:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-11T22:00:00.000Z")));
 			it("should return first slot Tuesday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-14T08:05:00.000Z"),
+					new Date("2025-01-14T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Sunday 2:00 PM (store closed all day)", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-12T14:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-12T14:00:00.000Z")));
 			it("should return first slot Tuesday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-14T08:05:00.000Z"),
+					new Date("2025-01-14T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Sunday 2:00 AM", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-12T02:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-12T02:00:00.000Z")));
 			it("should return first slot Tuesday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-14T08:05:00.000Z"),
+					new Date("2025-01-14T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Friday 3:00 PM", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-10T15:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-10T15:00:00.000Z")));
 			it("should return first slot Saturday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-11T08:05:00.000Z"),
+					new Date("2025-01-11T08:00:00.000Z"),
 				);
 			});
 		});
@@ -305,45 +269,37 @@ describe("preptimeByDays", () => {
 		});
 
 		describe("when current time is Friday 2:00 PM", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-10T14:00:00.000Z")),
-			);
-			it("should return first slot Saturday 10:05 AM", () => {
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-10T14:00:00.000Z")));
+			it("should return first slot Saturday 10:00 AM (prep time only applies to today, future days use buffer only)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-11T10:05:00.000Z"),
+					new Date("2025-01-11T10:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Friday 8:00 PM", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-10T20:00:00.000Z")),
-			);
-			it("should return first slot Saturday 10:05 AM", () => {
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-10T20:00:00.000Z")));
+			it("should return first slot Saturday 10:00 AM (prep time only applies to today, future days use buffer only)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-11T10:05:00.000Z"),
+					new Date("2025-01-11T10:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Saturday 2:00 PM", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-11T14:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-11T14:00:00.000Z")));
 			it("should return first slot Monday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-13T08:05:00.000Z"),
+					new Date("2025-01-13T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Saturday 7:00 PM after Sat close", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-11T19:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-11T19:00:00.000Z")));
 			it("should return first slot Tuesday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-14T08:05:00.000Z"),
+					new Date("2025-01-14T08:00:00.000Z"),
 				);
 			});
 		});
@@ -351,23 +307,19 @@ describe("preptimeByDays", () => {
 
 	describe("when Tuesday has early closure with 1 day prep time", () => {
 		describe("when current time is Tuesday 2:00 PM before early close", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-07T14:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-07T14:00:00.000Z")));
 			it("should return first slot Wednesday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-08T08:05:00.000Z"),
+					new Date("2025-01-08T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Tuesday 4:00 PM after store closed", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-07T16:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-07T16:00:00.000Z")));
 			it("should return first slot Wednesday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-08T08:05:00.000Z"),
+					new Date("2025-01-08T08:00:00.000Z"),
 				);
 			});
 		});
@@ -388,23 +340,19 @@ describe("preptimeByDays", () => {
 		});
 
 		describe("when current time is Tuesday 2:00 PM", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-07T14:00:00.000Z")),
-			);
-			it("should return first slot Wednesday 11:05 AM", () => {
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-07T14:00:00.000Z")));
+			it("should return first slot Wednesday 11:00 AM (prep time only applies to today, future days use buffer only)", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-08T11:05:00.000Z"),
+					new Date("2025-01-08T11:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Tuesday 10:00 PM after close", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-07T22:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-07T22:00:00.000Z")));
 			it("should return first slot Thursday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-09T08:05:00.000Z"),
+					new Date("2025-01-09T08:00:00.000Z"),
 				);
 			});
 		});
@@ -419,45 +367,37 @@ describe("preptimeByDays", () => {
 		});
 
 		describe("when current time is Monday 2:00 PM", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T14:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T14:00:00.000Z")));
 			it("should return first slot Wednesday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-08T08:05:00.000Z"),
+					new Date("2025-01-08T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Monday 9:00 PM after close", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T21:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T21:00:00.000Z")));
 			it("should return first slot Thursday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-09T08:05:00.000Z"),
+					new Date("2025-01-09T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Friday 2:00 PM", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-10T14:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-10T14:00:00.000Z")));
 			it("should return first slot Monday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-13T08:05:00.000Z"),
+					new Date("2025-01-13T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Saturday 2:00 PM", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-11T14:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-11T14:00:00.000Z")));
 			it("should return first slot Tuesday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-14T08:05:00.000Z"),
+					new Date("2025-01-14T08:00:00.000Z"),
 				);
 			});
 		});
@@ -472,23 +412,19 @@ describe("preptimeByDays", () => {
 		});
 
 		describe("when current time is Monday 2:00 PM", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T14:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T14:00:00.000Z")));
 			it("should return first slot Thursday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-09T08:05:00.000Z"),
+					new Date("2025-01-09T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is Friday 2:00 PM", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-10T14:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-10T14:00:00.000Z")));
 			it("should return first slot Tuesday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-14T08:05:00.000Z"),
+					new Date("2025-01-14T08:00:00.000Z"),
 				);
 			});
 		});
@@ -496,34 +432,28 @@ describe("preptimeByDays", () => {
 
 	describe("when testing exact boundary times", () => {
 		describe("when current time is 8:00:00 AM exactly at open", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T08:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T08:00:00.000Z")));
 			it("should return first slot next day 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-07T08:05:00.000Z"),
+					new Date("2025-01-07T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is 7:59:59 AM before open", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T07:59:59.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T07:59:59.000Z")));
 			it("should return first slot next day 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-07T08:05:00.000Z"),
+					new Date("2025-01-07T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is 8:00:00 PM exactly at close", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T20:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T20:00:00.000Z")));
 			it("should return first slot next day 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-07T08:05:00.000Z"),
+					new Date("2025-01-07T08:00:00.000Z"),
 				);
 			});
 		});
@@ -531,23 +461,19 @@ describe("preptimeByDays", () => {
 
 	describe("when testing midnight edge cases", () => {
 		describe("when current time is 12:00:00 AM midnight", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T00:00:00.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T00:00:00.000Z")));
 			it("should return first slot next day 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-07T08:05:00.000Z"),
+					new Date("2025-01-07T08:00:00.000Z"),
 				);
 			});
 		});
 
 		describe("when current time is 11:59:59 PM", () => {
-			beforeEach(() =>
-				vi.setSystemTime(new Date("2025-01-06T23:59:59.000Z")),
-			);
+			beforeEach(() => vi.setSystemTime(new Date("2025-01-06T23:59:59.000Z")));
 			it("should return first slot Wednesday 8:05 AM", () => {
 				expect(getFirstSlot(prepTimeSettings, location)).toEqual(
-					new Date("2025-01-08T08:05:00.000Z"),
+					new Date("2025-01-08T08:00:00.000Z"),
 				);
 			});
 		});

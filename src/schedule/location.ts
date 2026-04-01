@@ -1,5 +1,5 @@
 import { roundToNearestMinutes } from "date-fns";
-import { PREP_TIME_CADENCE } from "../constants";
+import { MINUTES_PER_DAY, PREP_TIME_CADENCE } from "../constants";
 import type {
 	FulfillmentSchedule,
 	GenerateLocationFulfillmentScheduleParams,
@@ -13,8 +13,6 @@ export function generateLocationFulfillmentSchedule({
 	currentDate = new Date(),
 	prepTimeFrequency = 0,
 	prepTimeCadence = PREP_TIME_CADENCE.MINUTE,
-	weekDayPrepTimes,
-	defaultPrepTimeInMinutes,
 	location,
 	fulfillmentPreference,
 	businessHoursOverrides = [],
@@ -24,6 +22,9 @@ export function generateLocationFulfillmentSchedule({
 	preSaleDates = [],
 	endDate = null,
 	isCatering = false,
+	openingBuffer = 0,
+	closingBuffer = 0,
+	estimatedDeliveryMinutes = 0,
 }: GenerateLocationFulfillmentScheduleParams): FulfillmentSchedule {
 	const isDaysCadence = prepTimeCadence === PREP_TIME_CADENCE.DAY;
 	const businessHours = getLocationBusinessHoursForFulfillment(
@@ -31,6 +32,13 @@ export function generateLocationFulfillmentSchedule({
 		fulfillmentPreference,
 		isCatering,
 	);
+
+	// DAY cadence: prepTimeFrequency is already in days.
+	// MINUTE cadence: convert minutes - full days to skip, remainder applied on target day.
+	const minuteCadenceDaysSkipped = !isDaysCadence
+		? Math.floor(prepTimeFrequency / MINUTES_PER_DAY)
+		: 0;
+	const hasDaySkipping = isDaysCadence || minuteCadenceDaysSkipped > 0;
 
 	const dates = getNextAvailableDates({
 		startDate: startDate || currentDate,
@@ -40,14 +48,16 @@ export function generateLocationFulfillmentSchedule({
 		datesCount: daysCount,
 		preSaleDates,
 		endDate,
-		isDaysCadence,
+		isDaysCadence: hasDaySkipping,
 	});
-	// If prepTimeCadence is days, we need to skip opening days by prepTimeFrequency
-	const availableDates = isDaysCadence ? dates.slice(prepTimeFrequency) : dates;
+
+	const daysToSkip = isDaysCadence
+		? prepTimeFrequency
+		: minuteCadenceDaysSkipped;
+	const availableDates = daysToSkip > 0 ? dates.slice(daysToSkip) : dates;
+
 	return generateSchedule({
 		currentDate: roundToNearestMinutes(currentDate),
-		weekDayPrepTimes,
-		defaultPrepTimeInMinutes,
 		timeZone: location.timezone,
 		dates: availableDates,
 		businessHours,
@@ -55,6 +65,9 @@ export function generateLocationFulfillmentSchedule({
 		preSaleHoursOverride,
 		gapInMinutes,
 		prepTimeCadence,
-		prepTimeFrequency
+		prepTimeFrequency,
+		openingBuffer,
+		closingBuffer,
+		estimatedDeliveryMinutes,
 	});
 }

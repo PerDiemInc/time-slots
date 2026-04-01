@@ -20,10 +20,6 @@ export type FulfillmentSchedule = DaySchedule[];
 
 export interface GenerateScheduleParams {
 	currentDate?: Date;
-	prepTimeBehaviour?: number;
-	prepTimeInMinutes?: number;
-	weekDayPrepTimes?: Record<number, number>;
-	defaultPrepTimeInMinutes?: number;
 	timeZone: string;
 	dates?: Date[];
 	businessHours?: BusinessHour[];
@@ -37,6 +33,10 @@ export interface GenerateScheduleParams {
 	gapInMinutes?: number;
 	prepTimeCadence?: PrepTimeCadence;
 	prepTimeFrequency?: number;
+	openingBuffer?: number;
+	closingBuffer?: number;
+	/** For DELIVERY: added on top of the computed first slot on every day. */
+	estimatedDeliveryMinutes?: number;
 }
 export interface GetNextAvailableDatesParams {
 	startDate: Date;
@@ -54,8 +54,6 @@ export interface GenerateLocationFulfillmentScheduleParams {
 	currentDate?: Date;
 	prepTimeFrequency?: number;
 	prepTimeCadence?: PrepTimeCadence;
-	weekDayPrepTimes?: Record<number, number>;
-	defaultPrepTimeInMinutes?: number;
 	location: LocationLike;
 	fulfillmentPreference: FulfillmentPreference;
 	/** Overrides for this location only (not keyed by location_id). */
@@ -72,6 +70,9 @@ export interface GenerateLocationFulfillmentScheduleParams {
 	preSaleDates?: Date[];
 	endDate?: Date | null;
 	isCatering?: boolean;
+	openingBuffer?: number;
+	closingBuffer?: number;
+	estimatedDeliveryMinutes?: number;
 }
 
 export interface GetOpeningClosingTimeOnDateParams {
