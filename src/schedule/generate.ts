@@ -145,8 +145,9 @@ export function generateSchedule({
 
 			// Track midnight spill: if today's last shift ends at 24:00, we need to
 			// apply closing buffer to tomorrow's last shift instead
-			const isTodayEndingInMidnightSpill =
-				lastShiftEndsAtMidnight(selectedBusinessHours);
+			const isTodayEndingInMidnightSpill = lastShiftEndsAtMidnight(
+				selectedBusinessHours,
+			);
 
 			// For DAY cadence: the first date in dates IS the target date (after slicing in location.ts)
 			const isDayCadenceFirstDate = isDayCadence && index === 0;
@@ -224,11 +225,11 @@ export function generateSchedule({
 						isDayCadenceFirstDate ||
 						isMinuteCadenceFirstDate
 					) {
-						const openingTime = storeTimes.openingTime ?? new Date(0);
-
 						let effectiveFirstSlot: Date;
 
 						if (isFirstShift) {
+							const openingTime = startDate;
+
 							if (isDayCadenceFirstDate) {
 								// DAY cadence: first slot = opening + buffer
 								effectiveFirstSlot = addMinutes(openingTime, openingBuffer);
@@ -311,9 +312,7 @@ export function generateSchedule({
 					// Opening buffer applies to the first shift only, and not to midnight-spill
 					// continuations (those are an extension of the previous day's last shift)
 					const effectiveOpeningBuffer =
-						isFirstShift && !isMidnightShiftContinuation
-							? openingBuffer
-							: 0;
+						isFirstShift && !isMidnightShiftContinuation ? openingBuffer : 0;
 					// Roll from the opening time for first shift; subsequent shifts from their own start
 					const rollFromDate =
 						isFirstShift &&
