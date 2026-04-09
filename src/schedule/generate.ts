@@ -184,11 +184,11 @@ export function generateSchedule({
 					// Determine if closing buffer should be applied:
 					// - Apply to last shift normally
 					// - BUT if this day ends in midnight spill, don't apply yet (wait for tomorrow's last shift)
-					// - If this is a midnight spill continuation AND it's the last shift, apply closing buffer
+					// - Always apply to midnight continuation shifts (they are the real
+					//   end of the previous day's shift that spilled past midnight)
 					const shouldApplyClosingBuffer =
-						isLastShift &&
-						!isTodayEndingInMidnightSpill &&
-						!isMidnightShiftContinuation;
+						isMidnightShiftContinuation ||
+						(isLastShift && !isTodayEndingInMidnightSpill);
 
 					const rawEndDate = setHmOnDate(date, businessHour.endTime, timeZone);
 					const shiftEndDate = shouldApplyClosingBuffer
@@ -309,16 +309,25 @@ export function generateSchedule({
 
 					// ── Future day logic ─────────────────────────────────────────────
 
-					// Opening buffer applies to the first shift only, and not to midnight-spill
-					// continuations (those are an extension of the previous day's last shift)
+					// Opening buffer applies to the first "real" shift of the day — i.e. the
+					// first shift that is NOT a midnight-spill continuation.  When a
+					// continuation is present it is always i === 0, so the real first shift
+					// is i === 1 (the second element).
+					const hasMidnightContinuation =
+						selectedBusinessHours.length > 1 &&
+						isZeroPrepTimeForMidnightShift({
+							prevDayBusinessHours: prevSelectedBusinessHours,
+							businessHour: selectedBusinessHours[0],
+						});
+					const isRealFirstShift = hasMidnightContinuation
+						? i === 1
+						: isFirstShift;
 					const effectiveOpeningBuffer =
-						isFirstShift && !isMidnightShiftContinuation ? openingBuffer : 0;
-					// Roll from the opening time for first shift; subsequent shifts from their own start
+						isRealFirstShift ? openingBuffer : 0;
+					// Roll from the opening time for the real first shift; other shifts from their own start
 					const rollFromDate =
-						isFirstShift &&
-						!isMidnightShiftContinuation &&
-						storeTimes.openingTime
-							? storeTimes.openingTime
+						isRealFirstShift && storeTimes.openingTime
+							? (hasMidnightContinuation ? startDate : storeTimes.openingTime)
 							: startDate;
 
 					const prepTimeSlot = addMinutes(
