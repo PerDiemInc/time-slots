@@ -121,26 +121,37 @@ describe("generate-slots", () => {
 		});
 
 		describe("now is before opening time", () => {
-			it("first slot = opening + prepTime when prepTime > buffer", () => {
+			it("first slot = opening + buffer when now + prep < opening + buffer", () => {
 				// Mon 06:00 (before 08:00), prep 45 min, buffer 15 min
-				// opening + max(45, 15) = 08:45
+				// now + prep = 06:45, opening + buffer = 08:15 → max = 08:15
 				vi.setSystemTime(new Date("2025-01-06T06:00:00.000Z"));
 				expect(
 					getFirstSlot(
 						makePrepTimeSettings({ prepTimeInMinutes: 45, openingBuffer: 15 }),
 					),
-				).toEqual(new Date("2025-01-06T08:45:00.000Z"));
+				).toEqual(new Date("2025-01-06T08:15:00.000Z"));
 			});
 
-			it("first slot = opening + buffer when buffer > prepTime", () => {
+			it("first slot = opening + buffer when buffer > prepTime (still below opening + buffer)", () => {
 				// Mon 06:00, prep 10 min, buffer 30 min
-				// opening + max(10, 30) = 08:30
+				// now + prep = 06:10, opening + buffer = 08:30 → max = 08:30
 				vi.setSystemTime(new Date("2025-01-06T06:00:00.000Z"));
 				expect(
 					getFirstSlot(
 						makePrepTimeSettings({ prepTimeInMinutes: 10, openingBuffer: 30 }),
 					),
 				).toEqual(new Date("2025-01-06T08:30:00.000Z"));
+			});
+
+			it("first slot = now + prep when now + prep > opening + buffer", () => {
+				// Mon 07:50 (before 08:00), prep 45 min, buffer 15 min
+				// now + prep = 08:35, opening + buffer = 08:15 → max = 08:35
+				vi.setSystemTime(new Date("2025-01-06T07:50:00.000Z"));
+				expect(
+					getFirstSlot(
+						makePrepTimeSettings({ prepTimeInMinutes: 45, openingBuffer: 15 }),
+					),
+				).toEqual(new Date("2025-01-06T08:35:00.000Z"));
 			});
 		});
 
