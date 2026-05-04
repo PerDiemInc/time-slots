@@ -13,7 +13,6 @@ export type {
 	BusinessHoursOverrideOutput,
 } from "./types/business-hours";
 export { getLocationsBusinessHoursOverrides } from "./utils/business-hours";
-export { getCateringPrepTimeConfig } from "./utils/catering";
 export {
 	getPreSalePickupDates,
 	isTodayInTimeZone,

@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PREP_TIME_CADENCE } from "../src/constants";
 import { getSchedules } from "../src/schedule/get-schedules";
 import type {
-	CartItem,
 	GetSchedulesParams,
 	LocationLike,
 	PrepTimeSettings,
@@ -158,98 +156,121 @@ describe("getSchedules", () => {
 		});
 	});
 
-	describe("Catering (prep time from cart items)", () => {
+	describe("Catering flow", () => {
+		// Catering shares the regular prep-time + buffer pipeline. The only
+		// distinction from a non-catering schedule is the business hours used:
+		// `location.catering.pickup` / `.delivery` instead of
+		// `location.pickup_hours` / `delivery_hours`.
 		const locationWithCatering = (): LocationLike =>
 			makeLocation({
+				// Regular pickup hours that should NOT be used when catering flow runs.
+				pickup_hours: [
+					{ day: 0, start_time: "06:00", end_time: "23:00" },
+					{ day: 1, start_time: "06:00", end_time: "23:00" },
+					{ day: 2, start_time: "06:00", end_time: "23:00" },
+					{ day: 3, start_time: "06:00", end_time: "23:00" },
+					{ day: 4, start_time: "06:00", end_time: "23:00" },
+					{ day: 5, start_time: "06:00", end_time: "23:00" },
+					{ day: 6, start_time: "06:00", end_time: "23:00" },
+				],
 				catering: {
 					enabled: true,
-					pickup: { start_time: "09:00", end_time: "17:00" },
-					delivery: { start_time: "09:00", end_time: "17:00" },
+					pickup: { start_time: "11:00", end_time: "14:00" },
+					delivery: { start_time: "11:00", end_time: "14:00" },
 				},
 			});
 
-		it("2-day prep item: first slot is at or after now + 48 hours", () => {
+		it("uses catering hours, not regular pickup hours", () => {
 			vi.useFakeTimers();
-			// Monday 2026-01-05 00:00 UTC → +48h = Wednesday 2026-01-07 00:00 UTC
-			vi.setSystemTime(new Date("2026-01-05T00:00:00.000Z"));
+			vi.setSystemTime(new Date("2026-01-05T05:00:00.000Z")); // before catering opens
 
 			const location = locationWithCatering();
-			const cartItems: CartItem[] = [
-				{
-					cateringService: {
-						min_quantity: 1,
-						max_quantity: 10,
-						serve_count: 1,
-						prep_time: { cadence: PREP_TIME_CADENCE.DAY, frequency: 2 },
-					},
-				},
-			];
-
 			const { schedule } = getSchedules({
 				store: makeStore(),
 				locations: [location],
-				cartItems,
+				cartItems: [],
 				fulfillmentPreference: "PICKUP",
 				prepTimeSettings: makePrepTimeSettings(),
 				currentLocation: location,
 				isCateringFlow: true,
 			});
 
-			expect(schedule.length).toBeGreaterThan(0);
-			expect(schedule[0].slots.length).toBeGreaterThan(0);
-
 			const firstSlot = schedule[0].slots[0] as Date;
-			const minFirstSlot = new Date("2026-01-07T00:00:00.000Z"); // now + 48h
-			expect(firstSlot.getTime()).toBeGreaterThanOrEqual(
-				minFirstSlot.getTime(),
-			);
-			// First slot is Wednesday at or after store open (09:00); may be 09:05 with default prep
-			expect(firstSlot.getUTCDay()).toBe(3); // Wednesday
-			expect(firstSlot.getUTCHours()).toBe(9);
-			expect(firstSlot.getUTCMinutes()).toBeLessThanOrEqual(15);
+			// First slot of the day should land within the catering window
+			// (11:00–14:00), never within the regular 06:00–23:00 window's
+			// early hours.
+			expect(firstSlot.getUTCHours()).toBeGreaterThanOrEqual(11);
+			expect(firstSlot.getUTCHours()).toBeLessThan(14);
+
+			// All slots stay inside catering hours.
+			for (const day of schedule) {
+				for (const slot of day.slots as Date[]) {
+					const h = slot.getUTCHours();
+					expect(h).toBeGreaterThanOrEqual(11);
+					expect(h).toBeLessThanOrEqual(14);
+				}
+			}
 
 			vi.useRealTimers();
 		});
 
-		it("12-hour prep item: first slot is at or after now + 12 hours", () => {
+		it("respects prep time the same way as a non-catering order", () => {
 			vi.useFakeTimers();
-			// Monday 2026-01-05 00:00 UTC → +12h = Monday 2026-01-05 12:00 UTC
-			vi.setSystemTime(new Date("2026-01-05T00:00:00.000Z"));
+			vi.setSystemTime(new Date("2026-01-05T11:00:00.000Z")); // catering opens at 11:00
 
 			const location = locationWithCatering();
-			const cartItems: CartItem[] = [
-				{
-					cateringService: {
-						min_quantity: 1,
-						max_quantity: 10,
-						serve_count: 1,
-						prep_time: { cadence: PREP_TIME_CADENCE.HOUR, frequency: 12 },
-					},
-				},
-			];
+			const prepTimeInMinutes = 45;
 
 			const { schedule } = getSchedules({
 				store: makeStore(),
 				locations: [location],
-				cartItems,
+				cartItems: [],
 				fulfillmentPreference: "PICKUP",
-				prepTimeSettings: makePrepTimeSettings(),
+				prepTimeSettings: makePrepTimeSettings({ prepTimeInMinutes }),
 				currentLocation: location,
 				isCateringFlow: true,
 			});
 
-			expect(schedule.length).toBeGreaterThan(0);
-			expect(schedule[0].slots.length).toBeGreaterThan(0);
+			const firstSlot = schedule[0].slots[0] as Date;
+			const earliest = new Date("2026-01-05T11:45:00.000Z");
+			expect(firstSlot.getTime()).toBeGreaterThanOrEqual(earliest.getTime());
+
+			vi.useRealTimers();
+		});
+
+		it("respects opening and closing buffers the same way as a non-catering order", () => {
+			vi.useFakeTimers();
+			vi.setSystemTime(new Date("2026-01-05T05:00:00.000Z"));
+
+			const location = locationWithCatering();
+
+			const { schedule } = getSchedules({
+				store: makeStore(),
+				locations: [location],
+				cartItems: [],
+				fulfillmentPreference: "PICKUP",
+				prepTimeSettings: makePrepTimeSettings({
+					prepTimeInMinutes: 0,
+					openingBuffer: 30,
+					closingBuffer: 30,
+				}),
+				currentLocation: location,
+				isCateringFlow: true,
+			});
 
 			const firstSlot = schedule[0].slots[0] as Date;
-			const minFirstSlot = new Date("2026-01-05T12:00:00.000Z"); // now + 12h
-			expect(firstSlot.getTime()).toBeGreaterThanOrEqual(
-				minFirstSlot.getTime(),
-			);
-			// First slot on same day at or after 12:00 (e.g. 12:05 with default prep)
-			expect(firstSlot.getUTCDate()).toBe(5);
-			expect(firstSlot.getUTCHours()).toBe(12);
-			expect(firstSlot.getUTCMinutes()).toBeLessThanOrEqual(15);
+			const lastSlot = schedule[0].slots[schedule[0].slots.length - 1] as Date;
+
+			// Opening buffer pushes the first slot to at least 11:30.
+			expect(firstSlot.getUTCHours()).toBeGreaterThanOrEqual(11);
+			expect(
+				firstSlot.getUTCHours() * 60 + firstSlot.getUTCMinutes(),
+			).toBeGreaterThanOrEqual(11 * 60 + 30);
+
+			// Closing buffer pulls the last slot back to at most 13:30.
+			expect(
+				lastSlot.getUTCHours() * 60 + lastSlot.getUTCMinutes(),
+			).toBeLessThanOrEqual(13 * 60 + 30);
 
 			vi.useRealTimers();
 		});

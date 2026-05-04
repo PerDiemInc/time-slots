@@ -1,4 +1,4 @@
-import { addMinutes, differenceInDays } from "date-fns";
+import { differenceInDays } from "date-fns";
 import {
 	FULFILLMENT_TYPES,
 	MINUTES_PER_DAY,
@@ -13,7 +13,6 @@ import type {
 	PreSaleConfig,
 } from "../types";
 import { getLocationsBusinessHoursOverrides } from "../utils/business-hours";
-import { getCateringPrepTimeConfig } from "../utils/catering";
 import { getPreSalePickupDates, overrideTimeZoneOnUTC } from "../utils/date";
 import { filterBusyTimesFromSchedule } from "../utils/schedule-filter";
 import { generateLocationFulfillmentSchedule } from "./location";
@@ -73,17 +72,12 @@ function getPreSaleHoursOverride(
 function resolveStartDate({
 	preSaleStartDate,
 	hasPreSaleItem,
-	cateringShiftMinutes = 0,
 }: {
 	preSaleStartDate: Date;
 	hasPreSaleItem: boolean;
-	cateringShiftMinutes?: number;
 }): Date {
 	if (hasPreSaleItem) {
 		return new Date(Math.max(preSaleStartDate.getTime(), Date.now()));
-	}
-	if (cateringShiftMinutes > 0) {
-		return addMinutes(new Date(), cateringShiftMinutes);
 	}
 	return new Date();
 }
@@ -112,31 +106,6 @@ function getPrepTimeCadenceAndFrequency(
 	};
 }
 
-/**
- * Resolves prep time config: for catering flow uses cart-derived cadence/frequency.
- * estimatedDeliveryMinutes is now passed directly to generateSchedule rather than
- * being baked into prep time, so it is always additive on top of prep time.
- */
-function resolvePrepTimeConfig(
-	prepTimeSettings: PrepTimeSettings,
-	cartItems: CartItem[],
-	isCateringFlow: boolean,
-): PrepTimeSettings {
-	if (!isCateringFlow) {
-		return prepTimeSettings;
-	}
-
-	const cateringPrepTimeConfig = getCateringPrepTimeConfig({
-		items: cartItems,
-		prepTimeCadence: prepTimeSettings.prepTimeCadence,
-		prepTimeFrequency: prepTimeSettings.prepTimeFrequency,
-	});
-	return {
-		...prepTimeSettings,
-		...cateringPrepTimeConfig,
-	};
-}
-
 // ── Main ────────────────────────────────────────────────────────────────────
 
 export function getSchedules({
@@ -157,11 +126,7 @@ export function getSchedules({
 	} = store;
 
 	const cart = deriveCartInfo(cartItems);
-	const resolvedPrepTime = resolvePrepTimeConfig(
-		getPrepTimeCadenceAndFrequency(prepTimeSettings),
-		cartItems,
-		isCateringFlow,
-	);
+	const resolvedPrepTime = getPrepTimeCadenceAndFrequency(prepTimeSettings);
 
 	const {
 		gapInMinutes,
@@ -172,11 +137,7 @@ export function getSchedules({
 		closingBuffer = 0,
 	} = resolvedPrepTime;
 
-	const isDayCadence = prepTimeCadence === PREP_TIME_CADENCE.DAY;
-	const cateringShiftMinutes =
-		isCateringFlow && !isDayCadence ? (rawPrepTimeFrequency ?? 0) : 0;
-	const prepTimeFrequency =
-		cateringShiftMinutes > 0 ? 0 : (rawPrepTimeFrequency ?? 0);
+	const prepTimeFrequency = rawPrepTimeFrequency ?? 0;
 
 	const isDelivery = fulfillmentPreference === FULFILLMENT_TYPES.DELIVERY;
 	const estimatedDeliveryMinutes = isDelivery
@@ -256,7 +217,6 @@ export function getSchedules({
 		currentDate: resolveStartDate({
 			preSaleStartDate: preSaleDates.startDate,
 			hasPreSaleItem: cart.hasPreSaleItem,
-			cateringShiftMinutes,
 		}),
 		prepTimeFrequency: isPreSaleEnabled ? 0 : prepTimeFrequency,
 		prepTimeCadence: isPreSaleEnabled ? undefined : prepTimeCadence,

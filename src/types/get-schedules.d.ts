@@ -1,12 +1,4 @@
 import type { PrepTimeCadence } from "../constants";
-
-export interface GetCateringPrepTimeParams {
-	items: CartItem[];
-	prepTimeCadence?: PrepTimeCadence;
-	prepTimeFrequency?: number;
-	timezone?: string;
-}
-
 import type {
 	BusinessHoursOverrideInput,
 	BusinessHoursOverrideOutput,
@@ -40,24 +32,10 @@ export interface StoreConfig {
 	preSaleConfig?: PreSaleConfig;
 	weeklyPreSaleConfig?: WeeklyPreSaleConfig;
 }
-export type CateringServiceType = {
-	min_quantity: number;
-	max_quantity: number;
-	serve_count: number;
-	prep_time: {
-		cadence: PrepTimeCadence;
-		frequency: number;
-	};
-};
 export interface CartItem {
 	preSale?: boolean;
 	weeklyPreSale?: boolean;
 	internalCategoryId?: string;
-	cateringService?: CateringServiceType;
-}
-export interface CateringPrepTimeResult {
-	prepTimeCadence: PrepTimeCadence;
-	prepTimeFrequency: number;
 }
 
 export interface PrepTimeSettings {

@@ -254,23 +254,15 @@ export function generateSchedule({
 									openingPlusBuffer,
 								]);
 							} else {
-								// Actual today with MINUTE cadence
-								if (isBefore(currentDate, openingTime)) {
-									effectiveFirstSlot = addMinutes(
-										openingTime,
-										Math.max(openingBuffer, prepTimeFrequency),
-									);
-								} else {
-									const nowPlusPrep = addMinutes(
-										currentDate,
-										prepTimeFrequency,
-									);
-									const openingPlusBuffer = addMinutes(
-										openingTime,
-										openingBuffer,
-									);
-									effectiveFirstSlot = max([nowPlusPrep, openingPlusBuffer]);
-								}
+								// Actual today with MINUTE cadence: prep time is always added
+								// to `now`. The first slot is the later of (now + prep) and
+								// (opening + buffer).
+								const nowPlusPrep = addMinutes(currentDate, prepTimeFrequency);
+								const openingPlusBuffer = addMinutes(
+									openingTime,
+									openingBuffer,
+								);
+								effectiveFirstSlot = max([nowPlusPrep, openingPlusBuffer]);
 							}
 
 							// Delivery always added on top
@@ -322,12 +314,13 @@ export function generateSchedule({
 					const isRealFirstShift = hasMidnightContinuation
 						? i === 1
 						: isFirstShift;
-					const effectiveOpeningBuffer =
-						isRealFirstShift ? openingBuffer : 0;
+					const effectiveOpeningBuffer = isRealFirstShift ? openingBuffer : 0;
 					// Roll from the opening time for the real first shift; other shifts from their own start
 					const rollFromDate =
 						isRealFirstShift && storeTimes.openingTime
-							? (hasMidnightContinuation ? startDate : storeTimes.openingTime)
+							? hasMidnightContinuation
+								? startDate
+								: storeTimes.openingTime
 							: startDate;
 
 					const prepTimeSlot = addMinutes(
