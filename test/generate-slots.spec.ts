@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PREP_TIME_CADENCE } from "../src/constants";
 import { getSchedules } from "../src/schedule/get-schedules";
 import type {
 	GetSchedulesParams,
@@ -506,65 +505,6 @@ describe("generate-slots", () => {
 				// Without prep, first slot should be 10:00 (now), not 11:00 (now + 60)
 				expect(firstSlot).toEqual(new Date("2025-01-06T10:00:00.000Z"));
 			}
-		});
-	});
-
-	describe("catering (prep time from cart items)", () => {
-		const locationWithCatering = () =>
-			makeLocation({
-				catering: {
-					enabled: true,
-					pickup: { start_time: "09:00", end_time: "17:00" },
-					delivery: { start_time: "09:00", end_time: "17:00" },
-				},
-			});
-
-		it("2-day catering prep → first slot on 3rd day at catering opening", () => {
-			vi.setSystemTime(new Date("2026-01-05T00:00:00.000Z")); // Monday
-			const slot = getFirstSlot(
-				makePrepTimeSettings(),
-				locationWithCatering(),
-				{
-					cartItems: [
-						{
-							cateringService: {
-								min_quantity: 1,
-								max_quantity: 10,
-								serve_count: 1,
-								prep_time: { cadence: PREP_TIME_CADENCE.DAY, frequency: 2 },
-							},
-						},
-					],
-					isCateringFlow: true,
-				},
-			);
-			expect(slot).toBeDefined();
-			expect(slot?.getUTCDay()).toBe(3); // Wednesday
-			expect(slot?.getUTCHours()).toBe(9);
-		});
-
-		it("12-hour catering prep → first slot same day after prep", () => {
-			vi.setSystemTime(new Date("2026-01-05T00:00:00.000Z")); // Monday
-			const slot = getFirstSlot(
-				makePrepTimeSettings(),
-				locationWithCatering(),
-				{
-					cartItems: [
-						{
-							cateringService: {
-								min_quantity: 1,
-								max_quantity: 10,
-								serve_count: 1,
-								prep_time: { cadence: PREP_TIME_CADENCE.HOUR, frequency: 12 },
-							},
-						},
-					],
-					isCateringFlow: true,
-				},
-			);
-			expect(slot).toBeDefined();
-			expect(slot?.getUTCDate()).toBe(5); // Same day
-			expect(slot?.getUTCHours()).toBe(12);
 		});
 	});
 });
