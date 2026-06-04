@@ -206,6 +206,49 @@ describe("getSchedules", () => {
 				},
 			});
 
+		it("respects a catering same-day config: returns a single day, not a future window", () => {
+			vi.useFakeTimers();
+			vi.setSystemTime(new Date("2026-01-05T11:00:00.000Z")); // within catering hours
+
+			const location = locationWithCatering();
+			const { schedule } = getSchedules({
+				// Same-day catering config with a wide future window that must be ignored.
+				store: makeStore({ isSameDayOrders: true, max_future_order_days: 30 }),
+				locations: [location],
+				cartItems: [],
+				fulfillmentPreference: "PICKUP",
+				prepTimeSettings: makePrepTimeSettings(),
+				currentLocation: location,
+				isCateringFlow: true,
+			});
+
+			expect(schedule).toHaveLength(1);
+			expect(schedule[0].slots.length).toBeGreaterThan(0);
+
+			vi.useRealTimers();
+		});
+
+		it("still returns a multi-day window for a catering future-order config", () => {
+			vi.useFakeTimers();
+			vi.setSystemTime(new Date("2026-01-05T11:00:00.000Z"));
+
+			const location = locationWithCatering();
+			const { schedule } = getSchedules({
+				// Neither asap nor same-day → future-order window honoured.
+				store: makeStore({ max_future_order_days: 5 }),
+				locations: [location],
+				cartItems: [],
+				fulfillmentPreference: "PICKUP",
+				prepTimeSettings: makePrepTimeSettings(),
+				currentLocation: location,
+				isCateringFlow: true,
+			});
+
+			expect(schedule.length).toBeGreaterThan(1);
+
+			vi.useRealTimers();
+		});
+
 		it("uses catering hours, not regular pickup hours", () => {
 			vi.useFakeTimers();
 			vi.setSystemTime(new Date("2026-01-05T05:00:00.000Z")); // before catering opens

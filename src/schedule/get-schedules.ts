@@ -206,7 +206,7 @@ export function getSchedules({
 		cart.hasPreSaleItem,
 	);
 
-	const needMultiDay = (!isAsapOrders && !isSameDayOrders) || isCateringFlow;
+	const needMultiDay = !isAsapOrders && !isSameDayOrders;
 	const effectiveDaysCount = isPreSaleEnabled
 		? differenceInDays(preSaleDates.endDate, preSaleDates.startDate) + 1
 		: needMultiDay
