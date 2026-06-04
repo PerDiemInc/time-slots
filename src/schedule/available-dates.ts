@@ -9,6 +9,7 @@ import {
 } from "date-fns";
 import { findTimeZone, getZonedTime } from "timezone-support";
 
+import { MIN_LOOKAHEAD_DAYS } from "../constants";
 import type { GetNextAvailableDatesParams } from "../types";
 import { setHmOnDate } from "../utils/date";
 
@@ -32,9 +33,11 @@ export function getNextAvailableDates({
 	const timeZoneInfo = findTimeZone(timeZone);
 	const dates: Date[] = [];
 
+	const lookaheadDays = Math.max(MIN_LOOKAHEAD_DAYS, datesCount);
+
 	for (
 		let date = startDate, maxRuns = 0;
-		dates.length < datesCount && maxRuns <= 60;
+		dates.length < datesCount && maxRuns <= lookaheadDays;
 		date = new Date(addDays(date, 1, { in: tz(timeZone) })), maxRuns += 1
 	) {
 		/**
