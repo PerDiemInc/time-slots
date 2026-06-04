@@ -407,7 +407,6 @@ describe("getNextAvailableDates", () => {
 
 			expect(generatedArray).toHaveLength(0);
 		});
-
 	});
 
 	describe("When using regular business hours across month boundary", () => {
@@ -924,18 +923,37 @@ describe("getNextAvailableDates", () => {
 			expect(result[4].toISOString()).toBe("2026-03-05T00:00:00.000Z");
 		});
 
-		it("caps at 61 iterations (maxRuns <= 60 allows 61 runs)", () => {
+		it("collects datesCount dates beyond the old 60-day cap (open every day)", () => {
 			const result = getNextAvailableDates({
 				startDate: new Date("2026-03-01T00:00:00.000Z"),
 				timeZone: "UTC",
 				businessHours: allDaysBusinessHours,
 				datesCount: 100,
 			});
-			expect(result.length).toBeLessThanOrEqual(61);
-			expect(result.length).toBe(61);
+			expect(result.length).toBe(100);
 			expect(result[result.length - 1].getTime()).toBeGreaterThan(
 				result[0].getTime(),
 			);
+		});
+
+		it("supports long future-order (catering) windows: datesCount 365 returns 365 dates", () => {
+			const result = getNextAvailableDates({
+				startDate: new Date("2026-03-01T00:00:00.000Z"),
+				timeZone: "UTC",
+				businessHours: allDaysBusinessHours,
+				datesCount: 365,
+			});
+			expect(result.length).toBe(365);
+		});
+
+		it("lookahead is driven by datesCount, not a fixed ceiling (open every day)", () => {
+			const result = getNextAvailableDates({
+				startDate: new Date("2026-03-01T00:00:00.000Z"),
+				timeZone: "UTC",
+				businessHours: allDaysBusinessHours,
+				datesCount: 400,
+			});
+			expect(result.length).toBe(400);
 		});
 
 		it("no duplicate calendar days in result (DST)", () => {
@@ -1050,6 +1068,65 @@ describe("getNextAvailableDates", () => {
 			expect(result[0].toISOString()).toBe("2026-03-07T05:00:00.000Z");
 			expect(result[1].toISOString()).toBe("2026-03-08T05:00:00.000Z");
 			expect(result[2].toISOString()).toBe("2026-03-09T04:00:00.000Z");
+		});
+	});
+
+	describe("Lookahead floor (MIN_LOOKAHEAD_DAYS)", () => {
+		it("caps the search at the ~60-day floor: closed-heavy store returns fewer than datesCount", () => {
+			// Open Sundays only. 20 open dates can't be found within the ~60-day
+			// floor, so it returns just the Sundays in that window (not 20).
+			const sundaysOnly = [{ day: 0, startTime: "08:00", endTime: "20:00" }];
+			const result = getNextAvailableDates({
+				startDate: new Date("2026-03-08T00:00:00.000Z"), // a Sunday
+				timeZone: "UTC",
+				businessHours: sundaysOnly,
+				datesCount: 20,
+			});
+			expect(result.length).toBeLessThan(20);
+			expect(result).toHaveLength(9); // Sundays within today + 60 days
+			result.forEach((d) => {
+				expect(d.getUTCDay()).toBe(0);
+			});
+		});
+
+		it("reaches past datesCount calendar days to collect datesCount dates (weekends only)", () => {
+			// Open weekends only: collecting 7 dates spans ~3 weeks, which the floor
+			// allows even though datesCount is only 7.
+			const weekendsOnly = [
+				{ day: 0, startTime: "08:00", endTime: "20:00" },
+				{ day: 6, startTime: "08:00", endTime: "20:00" },
+			];
+			const result = getNextAvailableDates({
+				startDate: new Date("2026-03-08T00:00:00.000Z"), // a Sunday
+				timeZone: "UTC",
+				businessHours: weekendsOnly,
+				datesCount: 7,
+			});
+			expect(result).toHaveLength(7);
+			result.forEach((d) => {
+				expect([0, 6]).toContain(d.getUTCDay());
+			});
+			const spanDays =
+				(result[6].getTime() - result[0].getTime()) / (1000 * 60 * 60 * 24);
+			expect(spanDays).toBeGreaterThan(7);
+		});
+
+		it("returns exactly datesCount at the floor boundary (open every day)", () => {
+			const at60 = getNextAvailableDates({
+				startDate: new Date("2026-03-01T00:00:00.000Z"),
+				timeZone: "UTC",
+				businessHours: allDaysBusinessHours,
+				datesCount: 60,
+			});
+			expect(at60).toHaveLength(60);
+
+			const above60 = getNextAvailableDates({
+				startDate: new Date("2026-03-01T00:00:00.000Z"),
+				timeZone: "UTC",
+				businessHours: allDaysBusinessHours,
+				datesCount: 61,
+			});
+			expect(above60).toHaveLength(61);
 		});
 	});
 });

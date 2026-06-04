@@ -85,6 +85,32 @@ describe("getSchedules", () => {
 		});
 	});
 
+	describe("When calling with a long (365-day) future order window", () => {
+		it("returns a full year of schedule days (lookahead driven by max_future_order_days, not a fixed cap)", () => {
+			vi.useFakeTimers();
+			vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+
+			const location = makeLocation();
+			const { schedule } = getSchedules({
+				store: makeStore({ max_future_order_days: 365 }),
+				locations: [location],
+				cartItems: [],
+				fulfillmentPreference: "PICKUP",
+				prepTimeSettings: makePrepTimeSettings(),
+				currentLocation: location,
+			});
+
+			// Previously the engine capped the lookahead at ~60 days; the window is
+			// now driven by the config.
+			expect(schedule).toHaveLength(365);
+			schedule.forEach((day) => {
+				expect(day.slots.length).toBeGreaterThan(0);
+			});
+
+			vi.useRealTimers();
+		});
+	});
+
 	describe("When filtering the schedule by menu time windows", () => {
 		it("should narrow slots to the menu's active window", () => {
 			vi.useFakeTimers();
