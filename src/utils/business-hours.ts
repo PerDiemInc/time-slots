@@ -96,25 +96,28 @@ export function getLocationBusinessHoursForFulfillment(
 			: null;
 
 	if (isCatering && !cateringBusinessTiming) {
-		//if catering is enabled but no business hours are set, return empty arrayif
+		// catering enabled but no catering hours configured, return empty arr i.e. not available
 		return [];
 	}
 
+	if (isCatering && cateringBusinessTiming) {
+		// Regular hours dictate the operating days; for catering, apply the catering
+		// window to each day — once per day, not per shift (else split shifts duplicate).
+		const operatingDays = Array.from(
+			new Set(businessHours?.map((businessHour) => businessHour.day) ?? []),
+		);
+		return operatingDays.map((day) => ({
+			day,
+			startTime: cateringBusinessTiming.start_time,
+			endTime: cateringBusinessTiming.end_time,
+		}));
+	}
+
 	return (
-		businessHours?.map((businessHour) => {
-			if (isCatering && cateringBusinessTiming) {
-				//if catering is enabled and catering business hours are set, return catering business hours
-				return {
-					day: businessHour.day,
-					startTime: cateringBusinessTiming.start_time,
-					endTime: cateringBusinessTiming.end_time,
-				};
-			}
-			return {
-				day: businessHour.day,
-				startTime: businessHour.start_time,
-				endTime: businessHour.end_time,
-			};
-		}) ?? []
+		businessHours?.map((businessHour) => ({
+			day: businessHour.day,
+			startTime: businessHour.start_time,
+			endTime: businessHour.end_time,
+		})) ?? []
 	);
 }

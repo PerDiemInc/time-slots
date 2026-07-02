@@ -408,6 +408,113 @@ describe("Business Hours Utils", () => {
 				]);
 			});
 		});
+
+		describe("when catering is enabled", () => {
+			// Mirrors the real bug: a store open in two blocks on one day (a "split
+			// shift") must not produce the single catering window twice.
+			const cateringLocation = {
+				location_id: "loc-1",
+				timezone: "America/New_York",
+				pickup_hours: [
+					{ day: 5, start_time: "00:00", end_time: "08:30" },
+					{ day: 5, start_time: "11:00", end_time: "17:00" },
+				],
+				delivery_hours: [
+					{ day: 5, start_time: "00:00", end_time: "08:30" },
+					{ day: 5, start_time: "11:00", end_time: "17:00" },
+				],
+				catering: {
+					enabled: true,
+					pickup: { start_time: "02:00", end_time: "22:00" },
+					delivery: { start_time: "03:00", end_time: "21:00" },
+				},
+			};
+
+			it("collapses a split-shift day to a single catering window", () => {
+				const result = getLocationBusinessHoursForFulfillment(
+					cateringLocation,
+					FULFILLMENT_TYPES.PICKUP,
+					true,
+				);
+
+				expect(result).toEqual([
+					{ day: 5, startTime: "02:00", endTime: "22:00" },
+				]);
+			});
+
+			it("emits one catering window per unique operating day, in order", () => {
+				const result = getLocationBusinessHoursForFulfillment(
+					{
+						...cateringLocation,
+						pickup_hours: [
+							{ day: 2, start_time: "00:00", end_time: "05:00" },
+							{ day: 2, start_time: "09:00", end_time: "17:00" },
+							{ day: 5, start_time: "00:00", end_time: "08:30" },
+							{ day: 5, start_time: "11:00", end_time: "17:00" },
+							{ day: 6, start_time: "09:00", end_time: "17:00" },
+						],
+					},
+					FULFILLMENT_TYPES.PICKUP,
+					true,
+				);
+
+				expect(result).toEqual([
+					{ day: 2, startTime: "02:00", endTime: "22:00" },
+					{ day: 5, startTime: "02:00", endTime: "22:00" },
+					{ day: 6, startTime: "02:00", endTime: "22:00" },
+				]);
+			});
+
+			it("uses the catering delivery window for delivery fulfillment", () => {
+				const result = getLocationBusinessHoursForFulfillment(
+					cateringLocation,
+					FULFILLMENT_TYPES.DELIVERY,
+					true,
+				);
+
+				expect(result).toEqual([
+					{ day: 5, startTime: "03:00", endTime: "21:00" },
+				]);
+			});
+
+			it("returns an empty array when catering has no configured hours", () => {
+				const result = getLocationBusinessHoursForFulfillment(
+					{
+						location_id: "loc-1",
+						timezone: "UTC",
+						pickup_hours: [{ day: 5, start_time: "00:00", end_time: "08:30" }],
+						catering: {
+							enabled: true,
+							pickup: undefined as unknown as {
+								start_time: string;
+								end_time: string;
+							},
+							delivery: undefined as unknown as {
+								start_time: string;
+								end_time: string;
+							},
+						},
+					},
+					FULFILLMENT_TYPES.PICKUP,
+					true,
+				);
+
+				expect(result).toEqual([]);
+			});
+
+			it("preserves regular split shifts when isCatering is false", () => {
+				const result = getLocationBusinessHoursForFulfillment(
+					cateringLocation,
+					FULFILLMENT_TYPES.PICKUP,
+					false,
+				);
+
+				expect(result).toEqual([
+					{ day: 5, startTime: "00:00", endTime: "08:30" },
+					{ day: 5, startTime: "11:00", endTime: "17:00" },
+				]);
+			});
+		});
 	});
 
 	describe("When today is closed but have special business hours override for today", () => {
