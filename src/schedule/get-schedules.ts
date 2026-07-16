@@ -159,11 +159,7 @@ export function getSchedules({
 		});
 	let isWeeklyPreSaleAvailable = false;
 	// ── Weekly pre-sale path (early return) ─────────────────────────────────
-	if (
-		(cart.hasWeeklyPreSaleItem || !cart.cartItemsCount) &&
-		weeklyPreSaleConfig?.active &&
-		!isCateringFlow
-	) {
+	if (weeklyPreSaleConfig?.active && !isCateringFlow) {
 		const weeklyPickupDates = getPreSalePickupDates(
 			weeklyPreSaleConfig?.pickup_days,
 			weeklyPreSaleConfig?.ordering_days,
