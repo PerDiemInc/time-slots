@@ -204,7 +204,27 @@ export function generateSchedule({
 						storeTimes.closingTime = shiftEndDate;
 					}
 
+					const isActualToday = isTodayInTimeZone(date, timeZone);
+
 					if (isAfter(effectiveShiftStart, shiftEndDate)) {
+						// The store is still taking orders (now ≤ close − buffer), but
+						// now + prep (carried over from an earlier shift) lands past
+						// that cutoff. Offer a single ASAP slot as long as the order is
+						// ready before the store closes.
+						if (
+							isActualToday &&
+							isMinutesCadence &&
+							shouldApplyClosingBuffer &&
+							shiftStartDateWithPrepTime &&
+							!isAfter(currentDate, shiftEndDate) &&
+							!isAfter(effectiveShiftStart, rawEndDate)
+						) {
+							storeTimes.totalShifts += 1;
+							storeTimes.remainingShifts += 1;
+							const lateAsapSlot = effectiveShiftStart;
+							shiftStartDateWithPrepTime = null;
+							return [lateAsapSlot];
+						}
 						// Shift fully skipped — keep shiftStartDateWithPrepTime so it
 						// can carry forward to the next shift or day.
 						return [];
@@ -218,7 +238,6 @@ export function generateSchedule({
 					);
 
 					// ── Today / first-date logic ────────────────────────────────────
-					const isActualToday = isTodayInTimeZone(date, timeZone);
 
 					if (
 						isActualToday ||
@@ -226,6 +245,10 @@ export function generateSchedule({
 						isMinuteCadenceFirstDate
 					) {
 						let effectiveFirstSlot: Date;
+						// The closing buffer gates when an order can be placed, not when
+						// it lands: if now ≤ close − buffer, now + prep may spill past
+						// the buffered end as long as it lands by the raw close.
+						let allowSlotPastClosingBuffer = false;
 
 						if (isFirstShift) {
 							const openingTime = startDate;
@@ -263,6 +286,9 @@ export function generateSchedule({
 									openingBuffer,
 								);
 								effectiveFirstSlot = max([nowPlusPrep, openingPlusBuffer]);
+								allowSlotPastClosingBuffer =
+									shouldApplyClosingBuffer &&
+									!isAfter(currentDate, shiftEndDate);
 							}
 
 							// Delivery always added on top
@@ -277,6 +303,18 @@ export function generateSchedule({
 						}
 
 						if (isAfter(effectiveFirstSlot, shiftEndDate)) {
+							// The slot includes prep + delivery, so it must land by the
+							// raw close.
+							if (
+								allowSlotPastClosingBuffer &&
+								!isAfter(effectiveFirstSlot, rawEndDate)
+							) {
+								storeTimes.remainingShifts += 1;
+								if (isMinutesCadence) {
+									shiftStartDateWithPrepTime = null;
+								}
+								return [effectiveFirstSlot];
+							}
 							if (isMinutesCadence) {
 								shiftStartDateWithPrepTime = effectiveFirstSlot;
 							}
