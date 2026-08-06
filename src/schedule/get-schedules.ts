@@ -1,4 +1,4 @@
-import { differenceInDays } from "date-fns";
+import { differenceInDays, differenceInMinutes } from "date-fns";
 import {
 	FULFILLMENT_TYPES,
 	MINUTES_PER_DAY,
@@ -9,6 +9,7 @@ import type {
 	FulfillmentSchedule,
 	GetSchedulesParams,
 	GetSchedulesResult,
+	PrepTimeImpact,
 	PrepTimeSettings,
 	PreSaleConfig,
 } from "../types";
@@ -106,6 +107,48 @@ function getPrepTimeCadenceAndFrequency(
 	};
 }
 
+/** Earliest slot the schedule can offer, across every day in it. */
+function findEarliestSlot(schedule: FulfillmentSchedule): Date | undefined {
+	return schedule.find((day) => day.firstAvailableSlot)?.firstAvailableSlot;
+}
+
+/**
+ * Impact for a schedule that never had prep time applied: it already is the
+ * prep-free schedule, so its earliest slot is the honest answer and nothing
+ * was delayed.
+ */
+function noPrepTimeImpact(schedule: FulfillmentSchedule): PrepTimeImpact {
+	return {
+		earliestSlotWithoutPrepTime: findEarliestSlot(schedule),
+		delayInMinutes: 0,
+	};
+}
+
+/**
+ * Compare the earliest slot of the real schedule against one generated with
+ * prep neutralized. Everything else (hours, buffers, busy times) is identical
+ * in both, so what is left is prep time's own contribution.
+ */
+function buildPrepTimeImpact(
+	scheduleWithPrepTime: FulfillmentSchedule,
+	scheduleWithoutPrepTime: FulfillmentSchedule,
+): PrepTimeImpact {
+	const earliestSlot = findEarliestSlot(scheduleWithPrepTime);
+	const earliestSlotWithoutPrepTime = findEarliestSlot(scheduleWithoutPrepTime);
+
+	if (!earliestSlot || !earliestSlotWithoutPrepTime) {
+		return { earliestSlotWithoutPrepTime, delayInMinutes: 0 };
+	}
+
+	return {
+		earliestSlotWithoutPrepTime,
+		delayInMinutes: Math.max(
+			0,
+			differenceInMinutes(earliestSlot, earliestSlotWithoutPrepTime),
+		),
+	};
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────
 
 export function getSchedules({
@@ -183,6 +226,8 @@ export function getSchedules({
 				return {
 					schedule: filteredSchedule,
 					isWeeklyPreSaleAvailable: filteredSchedule.length > 0,
+					// Weekly pre-sale slots are generated without prep time.
+					prepTimeImpact: noPrepTimeImpact(filteredSchedule),
 				};
 			} else {
 				isWeeklyPreSaleAvailable = filteredSchedule.length > 0;
@@ -209,7 +254,7 @@ export function getSchedules({
 			? daysCount
 			: 1;
 
-	const schedule = generateLocationFulfillmentSchedule({
+	const scheduleParams = {
 		currentDate: resolveStartDate({
 			preSaleStartDate: preSaleDates.startDate,
 			hasPreSaleItem: cart.hasPreSaleItem,
@@ -227,10 +272,31 @@ export function getSchedules({
 		estimatedDeliveryMinutes,
 		...(preSaleHoursOverride && { preSaleHoursOverride }),
 		...(isPreSaleEnabled && { endDate: preSaleDates.endDate }),
-	});
+	};
+
+	const filteredSchedule = filterSchedule(
+		generateLocationFulfillmentSchedule(scheduleParams),
+	);
+
+	// `prepTimeFrequency: 0` is how this module already expresses "no prep time"
+	// (see the pre-sale branch above), so the second schedule differs from the
+	// first by prep time and nothing else. With no prep there is nothing to
+	// neutralize, so the schedule is its own prep-free counterpart.
+	const scheduleWithoutPrepTime = scheduleParams.prepTimeFrequency
+		? filterSchedule(
+				generateLocationFulfillmentSchedule({
+					...scheduleParams,
+					prepTimeFrequency: 0,
+				}),
+			)
+		: filteredSchedule;
 
 	return {
-		schedule: filterSchedule(schedule),
+		schedule: filteredSchedule,
 		isWeeklyPreSaleAvailable,
+		prepTimeImpact: buildPrepTimeImpact(
+			filteredSchedule,
+			scheduleWithoutPrepTime,
+		),
 	};
 }

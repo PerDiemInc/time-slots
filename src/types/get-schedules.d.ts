@@ -67,9 +67,23 @@ export interface GetSchedulesParams {
 	isCateringFlow?: boolean;
 }
 
+/**
+ * How much later prep time makes the earliest slot. Business hours, buffers,
+ * busy times and delivery estimates apply to both schedules, so the difference
+ * is prep time alone: a store that opens after the prep window has already
+ * closed reports a delay of 0.
+ */
+export interface PrepTimeImpact {
+	/** Earliest slot the schedule would offer if nothing needed preparing. */
+	earliestSlotWithoutPrepTime: Date | undefined;
+	/** Minutes prep time pushes the earliest slot back. Never negative. */
+	delayInMinutes: number;
+}
+
 export interface GetSchedulesResult {
 	schedule: FulfillmentSchedule;
 	isWeeklyPreSaleAvailable: boolean;
+	prepTimeImpact: PrepTimeImpact;
 }
 
 // ── Legacy flat params (kept for backward-compat if needed) ─────────────────

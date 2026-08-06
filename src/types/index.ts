@@ -11,6 +11,7 @@ export type {
 	GetSchedulesResult,
 	InitScheduleParams,
 	InitScheduleResult,
+	PrepTimeImpact,
 	PrepTimeSettings,
 	PreSaleConfig,
 	StoreConfig,
