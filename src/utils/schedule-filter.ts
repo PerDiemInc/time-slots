@@ -6,6 +6,7 @@ import type {
 	FulfillmentSchedule,
 	MenuType,
 } from "../types";
+import { getApplicableBusyTimes } from "./busy-times";
 import { isTimeInRange } from "./time";
 
 // ── Private helpers ─────────────────────────────────────────────────────────
@@ -47,24 +48,9 @@ export function filterBusyTimesFromSchedule({
 		return schedule;
 	}
 
-	const uniqueCartCategoryIds = Array.isArray(cartCategoryIds)
-		? Array.from(new Set(cartCategoryIds.filter(Boolean)))
-		: [];
-
-	const applicableBusyTimes = busyTimes.filter((busyTime) => {
-		const thresholdCategoryIds = busyTime?.threshold?.categoryIds || [];
-
-		if (!thresholdCategoryIds.length) {
-			return true;
-		}
-
-		if (!uniqueCartCategoryIds.length) {
-			return false;
-		}
-
-		return uniqueCartCategoryIds.some((cartCategoryId) =>
-			thresholdCategoryIds.includes(cartCategoryId),
-		);
+	const applicableBusyTimes = getApplicableBusyTimes({
+		busyTimes,
+		cartCategoryIds,
 	});
 
 	if (!applicableBusyTimes.length) {

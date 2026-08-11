@@ -5,7 +5,10 @@ import {
 	toBusinessHoursOverride,
 } from "../src/utils/business-hours";
 import { overrideTimeZoneOnUTC, setHmOnDate } from "../src/utils/date";
-import { getOpeningClosingTimeOnDate } from "../src/utils/store-hours";
+import {
+	getOpeningClosingTime,
+	getOpeningClosingTimeOnDate,
+} from "../src/utils/store-hours";
 
 const timezone = "America/New_York";
 
@@ -116,6 +119,8 @@ describe("Business Hours Utils", () => {
 			expect(result).toEqual({
 				openingTime: opening,
 				closingTime: closing,
+				isFirstShift: true,
+				isLastShift: true,
 			});
 		});
 
@@ -143,6 +148,8 @@ describe("Business Hours Utils", () => {
 			expect(result).toEqual({
 				openingTime: opening,
 				closingTime: closing,
+				isFirstShift: true,
+				isLastShift: true,
 			});
 		});
 
@@ -174,6 +181,8 @@ describe("Business Hours Utils", () => {
 			expect(result).toEqual({
 				openingTime: overrideOpening,
 				closingTime: overrideClosing,
+				isFirstShift: true,
+				isLastShift: true,
 			});
 		});
 
@@ -204,7 +213,147 @@ describe("Business Hours Utils", () => {
 			expect(result).toEqual({
 				openingTime: morningOpen,
 				closingTime: afternoonClose,
+				isFirstShift: true,
+				isLastShift: false,
 			});
+		});
+
+		it("should resolve a location's own hours and overrides", () => {
+			const location = {
+				location_id: "loc-1",
+				timezone,
+				pickup_hours: [{ day: 2, start_time: "09:00", end_time: "17:00" }],
+				delivery_hours: [{ day: 2, start_time: "10:00", end_time: "16:00" }],
+			};
+
+			vi.useFakeTimers();
+			vi.setSystemTime(new Date("2025-03-11T06:00:00"));
+
+			const pickup = getOpeningClosingTime({
+				location: location as never,
+				fulfillmentPreference: FULFILLMENT_TYPES.PICKUP,
+				businessHoursOverrides: {},
+			});
+			const delivery = getOpeningClosingTime({
+				location: location as never,
+				fulfillmentPreference: FULFILLMENT_TYPES.DELIVERY,
+				businessHoursOverrides: {
+					"loc-1": [
+						{ day: 11, month: 3, startTime: "11:00", endTime: "14:00" },
+					],
+				},
+			});
+
+			expect(pickup?.openingTime).toEqual(
+				setHmOnDate(
+					overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+					"09:00",
+					timezone,
+				),
+			);
+			expect(pickup?.isFirstShift).toBe(true);
+			// the override wins for delivery, and only for the location it is keyed to
+			expect(delivery?.openingTime).toEqual(
+				setHmOnDate(
+					overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+					"11:00",
+					timezone,
+				),
+			);
+
+			vi.useRealTimers();
+		});
+
+		it("should return null for a location with no hours at all", () => {
+			expect(
+				getOpeningClosingTime({
+					location: { location_id: "loc-1", timezone } as never,
+					fulfillmentPreference: FULFILLMENT_TYPES.PICKUP,
+					businessHoursOverrides: {},
+				}),
+			).toBeNull();
+		});
+
+		it("should open a day that has no regular hours when an override says so", () => {
+			const businessHours = [{ day: 3, startTime: "09:00", endTime: "17:00" }];
+
+			const businessHoursOverrides = [
+				{ day: 11, month: 3, startTime: "10:00", endTime: "15:00" },
+			];
+
+			const result = getOpeningClosingTimeOnDate({
+				date: testDate,
+				businessHours,
+				businessHoursOverrides,
+				timeZone: timezone,
+			});
+
+			expect(result?.openingTime).toEqual(
+				setHmOnDate(
+					overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+					"10:00",
+					timezone,
+				),
+			);
+			// an override collapses the day to a single window, so both buffers apply
+			expect(result?.isFirstShift).toBe(true);
+			expect(result?.isLastShift).toBe(true);
+		});
+
+		it("should skip an override window that has already closed", () => {
+			const businessHours = [{ day: 3, startTime: "09:00", endTime: "17:00" }];
+
+			const result = getOpeningClosingTimeOnDate({
+				// 16:00 on the 11th, after that day's override window has ended
+				date: setHmOnDate(
+					overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+					"16:00",
+					timezone,
+				),
+				businessHours,
+				businessHoursOverrides: [
+					{ day: 11, month: 3, startTime: "10:00", endTime: "15:00" },
+				],
+				timeZone: timezone,
+			});
+
+			// falls through to the next day that is actually open
+			expect(result?.openingTime).toEqual(
+				setHmOnDate(
+					overrideTimeZoneOnUTC(new Date("2025-03-12T06:00:00"), timezone),
+					"09:00",
+					timezone,
+				),
+			);
+		});
+
+		it("should mark the afternoon shift as the day's last but not its first", () => {
+			const businessHours = [
+				{ day: 2, startTime: "09:00", endTime: "12:00" },
+				{ day: 2, startTime: "13:00", endTime: "17:00" },
+			];
+
+			const afternoonOpen = setHmOnDate(
+				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+				"13:00",
+				timezone,
+			);
+
+			const result = getOpeningClosingTimeOnDate({
+				// after the morning shift has closed
+				date: setHmOnDate(
+					overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+					"12:30",
+					timezone,
+				),
+				businessHours,
+				businessHoursOverrides: [],
+				timeZone: timezone,
+			});
+
+			expect(result?.openingTime).toEqual(afternoonOpen);
+			expect(result?.isFirstShift).toBe(false);
+			expect(result?.isLastShift).toBe(true);
 		});
 
 		it("should return null for invalid business hours where end time is before start time", () => {
@@ -249,6 +398,8 @@ describe("Business Hours Utils", () => {
 			expect(result).toEqual({
 				openingTime: opening,
 				closingTime: closing,
+				isFirstShift: true,
+				isLastShift: true,
 			});
 		});
 
@@ -277,6 +428,8 @@ describe("Business Hours Utils", () => {
 			expect(result).toEqual({
 				openingTime: opening,
 				closingTime: closing,
+				isFirstShift: true,
+				isLastShift: true,
 			});
 
 			vi.useRealTimers();

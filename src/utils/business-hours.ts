@@ -104,7 +104,7 @@ export function getLocationBusinessHoursForFulfillment(
 		// Regular hours dictate the operating days; for catering, apply the catering
 		// window to each day — once per day, not per shift (else split shifts duplicate).
 		const operatingDays = Array.from(
-			new Set(businessHours?.map((businessHour) => businessHour.day) ?? []),
+			new Set(businessHours?.map((businessHour) => businessHour?.day) ?? []),
 		);
 		return operatingDays.map((day) => ({
 			day,
@@ -115,9 +115,9 @@ export function getLocationBusinessHoursForFulfillment(
 
 	return (
 		businessHours?.map((businessHour) => ({
-			day: businessHour.day,
-			startTime: businessHour.start_time,
-			endTime: businessHour.end_time,
+			day: businessHour?.day,
+			startTime: businessHour?.start_time,
+			endTime: businessHour?.end_time,
 		})) ?? []
 	);
 }

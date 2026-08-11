@@ -19,8 +19,12 @@ export {
 	isTomorrowInTimeZone,
 	overrideTimeZoneOnUTC,
 } from "./utils/date";
+export { getNextOrderableWindow } from "./utils/orderable-window";
 export {
 	filterBusyTimesFromSchedule,
 	filterMenusFromSchedule,
 } from "./utils/schedule-filter";
-export { getOpeningClosingTime } from "./utils/store-hours";
+export {
+	getOpeningClosingTime,
+	getOpeningClosingTimeOnDate,
+} from "./utils/store-hours";

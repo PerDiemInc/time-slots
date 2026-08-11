@@ -7,6 +7,7 @@ import type {
 	BusinessHoursOverrideOutput,
 	GetOpeningClosingTimeOnDateParams,
 	GetOpeningClosingTimeParams,
+	OpeningClosingTime,
 } from "../types";
 import { getLocationBusinessHoursForFulfillment } from "./business-hours";
 import { isMidnightTransition, isTodayInTimeZone, setHmOnDate } from "./date";
@@ -83,10 +84,7 @@ export function getOpeningClosingTimeOnDate({
 	businessHours = [],
 	businessHoursOverrides = [],
 	timeZone,
-}: GetOpeningClosingTimeOnDateParams): {
-	openingTime: Date;
-	closingTime: Date;
-} | null {
+}: GetOpeningClosingTimeOnDateParams): OpeningClosingTime | null {
 	try {
 		const nextAvailableDates = getNextAvailableDates({
 			startDate: date,
@@ -135,7 +133,13 @@ export function getOpeningClosingTimeOnDate({
 						continue;
 					}
 
-					return { openingTime, closingTime };
+					// an override collapses the day to a single window
+					return {
+						openingTime,
+						closingTime,
+						isFirstShift: true,
+						isLastShift: true,
+					};
 				}
 
 				continue;
@@ -158,6 +162,11 @@ export function getOpeningClosingTimeOnDate({
 			if (isBefore(currentSlot.endDate, date)) {
 				continue;
 			}
+
+			// read before the midnight-transition branch below replaces the slot
+			const isFirstShift = currentSlot === dayBusinessTimes[0];
+			const isLastShift =
+				currentSlot === dayBusinessTimes[dayBusinessTimes.length - 1];
 
 			if (
 				isTodayInTimeZone(nextAvailableDate, timeZone) &&
@@ -190,6 +199,8 @@ export function getOpeningClosingTimeOnDate({
 			return {
 				openingTime: currentSlot.startDate,
 				closingTime: currentSlot.endDate,
+				isFirstShift,
+				isLastShift,
 			};
 		}
 
@@ -204,10 +215,7 @@ export function getOpeningClosingTime({
 	fulfillmentPreference,
 	businessHoursOverrides,
 	isCatering = false,
-}: GetOpeningClosingTimeParams): {
-	openingTime: Date;
-	closingTime: Date;
-} | null {
+}: GetOpeningClosingTimeParams): OpeningClosingTime | null {
 	const businessHours = getLocationBusinessHoursForFulfillment(
 		location,
 		fulfillmentPreference,

@@ -2,6 +2,7 @@ import type {
 	BusinessHour,
 	BusinessHoursOverrideOutput,
 } from "./business-hours";
+import type { BusyTimeItem } from "./common";
 import type { FulfillmentPreference, LocationLike } from "./location";
 
 export interface DaySchedule {
@@ -87,4 +88,23 @@ export interface GetOpeningClosingTimeParams {
 	fulfillmentPreference: FulfillmentPreference;
 	businessHoursOverrides?: Record<string, BusinessHoursOverrideOutput[]>;
 	isCatering?: boolean;
+}
+
+export interface OpeningClosingTime {
+	openingTime: Date;
+	closingTime: Date;
+	/** Whether this is the day's first/last shift, i.e. where the buffers apply. */
+	isFirstShift: boolean;
+	isLastShift: boolean;
+}
+
+export interface GetNextOrderableWindowParams
+	extends GetOpeningClosingTimeParams {
+	busyTimes?: BusyTimeItem[];
+	/** Categories in the cart, so category-scoped busy times can be applied. */
+	cartCategoryIds?: string[];
+	openingBuffer?: number;
+	closingBuffer?: number;
+	/** Defaults to Date.now(); accepted so callers can pin it in tests. */
+	now?: number;
 }
