@@ -300,6 +300,28 @@ describe("Business Hours Utils", () => {
 			expect(result?.isLastShift).toBe(true);
 		});
 
+		it("should carry a past-midnight window on a future day, not just today", () => {
+			// the real clock sits well before the day being asked about
+			vi.useFakeTimers();
+			vi.setSystemTime(new Date("2024-10-20T04:00:00.000Z"));
+
+			const businessHours = [
+				{ day: 0, startTime: "01:00", endTime: "23:59" },
+				{ day: 1, startTime: "00:00", endTime: "02:00" },
+			];
+
+			const times = getOpeningClosingTimeOnDate({
+				date: new Date("2024-10-27T04:00:00.000Z"),
+				timeZone: "UTC",
+				businessHours,
+				businessHoursOverrides: [],
+			});
+
+			expect(times?.closingTime).toEqual(new Date("2024-10-28T02:00:00.000Z"));
+
+			vi.useRealTimers();
+		});
+
 		it("should skip an override window that has already closed", () => {
 			const businessHours = [{ day: 3, startTime: "09:00", endTime: "17:00" }];
 

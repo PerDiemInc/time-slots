@@ -77,27 +77,31 @@ export function mergeBusyRanges(busyTimes: BusyTimeItem[] = []): BusyRange[] {
 }
 
 /**
- * True when nothing between `start` and `end` can be ordered — the range is
- * empty, or busy windows cover it end to end.
+ * The first instant at or after `from` that no busy window covers.
+ *
+ * Ranges arrive merged and sorted, so an instant inside a window jumps straight
+ * to that window's end. Returns `from` unchanged when nothing covers it.
  */
-export function isRangeFullyBlocked({
-	start,
-	end,
+export function getFirstUnblockedTime({
+	from,
 	busyRanges = [],
 }: {
-	start: number;
-	end: number;
+	from: number;
 	busyRanges?: BusyRange[];
-}): boolean {
-	if (!(end > start)) {
-		return true;
-	}
-
+}): number {
 	if (!Array.isArray(busyRanges)) {
-		return false;
+		return from;
 	}
 
-	return busyRanges.some(
-		([busyStart, busyEnd]) => busyStart <= start && busyEnd >= end,
-	);
+	let at = from;
+	for (const [start, end] of busyRanges) {
+		if (end <= at) {
+			continue;
+		}
+		if (start > at) {
+			break;
+		}
+		at = end;
+	}
+	return at;
 }

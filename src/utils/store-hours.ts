@@ -10,7 +10,11 @@ import type {
 	OpeningClosingTime,
 } from "../types";
 import { getLocationBusinessHoursForFulfillment } from "./business-hours";
-import { isMidnightTransition, isTodayInTimeZone, setHmOnDate } from "./date";
+import {
+	isMidnightTransition,
+	isSameDateInTimeZone,
+	setHmOnDate,
+} from "./date";
 
 // ── Private helpers ─────────────────────────────────────────────────────────
 
@@ -168,8 +172,10 @@ export function getOpeningClosingTimeOnDate({
 			const isLastShift =
 				currentSlot === dayBusinessTimes[dayBusinessTimes.length - 1];
 
+			// Open till 23:59 and back at 00:00 means the store never really closed,
+			// so the two shifts merge into one window.
 			if (
-				isTodayInTimeZone(nextAvailableDate, timeZone) &&
+				isSameDateInTimeZone(nextAvailableDate, date, timeZone) &&
 				nextDateIndex + 1 < nextAvailableDates.length
 			) {
 				const { dayBusinessTimes: nextDayTimes } = getAvailableBusinessHours({

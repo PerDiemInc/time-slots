@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { BusyTimeItem, LocationLike } from "../src/types";
 import {
 	getApplicableBusyTimes,
-	isRangeFullyBlocked,
+	getFirstUnblockedTime,
 	mergeBusyRanges,
 } from "../src/utils/busy-times";
 import { getNextOrderableWindow } from "../src/utils/orderable-window";
@@ -95,25 +95,27 @@ describe("mergeBusyRanges", () => {
 	});
 });
 
-describe("isRangeFullyBlocked", () => {
-	const busyRanges: [number, number][] = [[100, 200]];
+describe("getFirstUnblockedTime", () => {
+	const busyRanges: [number, number][] = [
+		[100, 200],
+		[300, 400],
+	];
 
-	it("is true only when a busy range covers the whole range", () => {
-		expect(isRangeFullyBlocked({ start: 120, end: 180, busyRanges })).toBe(
-			true,
-		);
-		expect(isRangeFullyBlocked({ start: 90, end: 180, busyRanges })).toBe(
-			false,
-		);
-		expect(isRangeFullyBlocked({ start: 120, end: 220, busyRanges })).toBe(
-			false,
-		);
+	it("returns the instant itself when nothing covers it", () => {
+		expect(getFirstUnblockedTime({ from: 50, busyRanges })).toBe(50);
+		expect(getFirstUnblockedTime({ from: 200, busyRanges })).toBe(200);
+		expect(getFirstUnblockedTime({ from: 250, busyRanges })).toBe(250);
 	});
 
-	it("treats an empty range as blocked — nothing is orderable in it", () => {
-		expect(isRangeFullyBlocked({ start: 200, end: 200, busyRanges })).toBe(
-			true,
-		);
+	it("jumps to the end of the window covering it", () => {
+		expect(getFirstUnblockedTime({ from: 100, busyRanges })).toBe(200);
+		expect(getFirstUnblockedTime({ from: 150, busyRanges })).toBe(200);
+		expect(getFirstUnblockedTime({ from: 350, busyRanges })).toBe(400);
+	});
+
+	it("returns the instant when there are no windows", () => {
+		expect(getFirstUnblockedTime({ from: 150, busyRanges: [] })).toBe(150);
+		expect(getFirstUnblockedTime({ from: 150 })).toBe(150);
 	});
 });
 
@@ -203,24 +205,12 @@ describe("busy-time helpers with malformed input", () => {
 
 	it("does not blow up on a missing or malformed range list", () => {
 		expect(
-			isRangeFullyBlocked({
-				start: 100,
-				end: 200,
+			getFirstUnblockedTime({
+				from: 100,
 				busyRanges: null as unknown as [number, number][],
 			}),
-		).toBe(false);
-		expect(isRangeFullyBlocked({ start: 100, end: 200 })).toBe(false);
-	});
-
-	it("reports a range it cannot make sense of as blocked", () => {
-		const busyRanges: [number, number][] = [[100, 200]];
-
-		expect(
-			isRangeFullyBlocked({ start: Number.NaN, end: 200, busyRanges }),
-		).toBe(true);
-		expect(isRangeFullyBlocked({ start: 300, end: 200, busyRanges })).toBe(
-			true,
-		);
+		).toBe(100);
+		expect(getFirstUnblockedTime({ from: 100 })).toBe(100);
 	});
 });
 
@@ -268,6 +258,43 @@ describe("getNextOrderableWindow", () => {
 			});
 
 			expect(window?.closingTime.toISOString()).toBe(TUESDAY_CLOSE);
+		});
+
+		it("starts ordering after a block covering the front of the day", () => {
+			const window = nextWindow({
+				now: new Date("2026-08-11T10:00:00Z").getTime(),
+				busyTimes: [busy("2026-08-11T09:00:00Z", "2026-08-11T13:00:00Z")],
+			});
+
+			// still open until close, but nothing can be ordered before 13:00
+			expect(window?.openingTime.toISOString()).toBe(
+				"2026-08-11T13:00:00.000Z",
+			);
+			expect(window?.closingTime.toISOString()).toBe(TUESDAY_CLOSE);
+		});
+
+		it("leaves the opening time alone for a block in the middle of the day", () => {
+			const window = nextWindow({
+				now: new Date("2026-08-11T10:00:00Z").getTime(),
+				busyTimes: [busy("2026-08-11T14:00:00Z", "2026-08-11T16:00:00Z")],
+			});
+
+			expect(window?.openingTime.toISOString()).toBe(
+				"2026-08-11T09:00:00.000Z",
+			);
+		});
+
+		it("pushes tomorrow's opening past a block on tomorrow morning", () => {
+			const window = nextWindow({
+				busyTimes: [
+					busy("2026-08-11T15:00:00Z", "2026-08-11T21:00:00Z"),
+					busy("2026-08-12T09:00:00Z", "2026-08-12T11:00:00Z"),
+				],
+			});
+
+			expect(window?.openingTime.toISOString()).toBe(
+				"2026-08-12T11:00:00.000Z",
+			);
 		});
 
 		it("falls through to tomorrow when the rest of today is blocked", () => {
