@@ -7,7 +7,7 @@ import type {
 import { getLocationBusinessHoursForFulfillment } from "./business-hours";
 import {
 	getApplicableBusyTimes,
-	isRangeFullyBlocked,
+	getFirstUnblockedTime,
 	mergeBusyRanges,
 } from "./busy-times";
 import { getOpeningClosingTimeOnDate } from "./store-hours";
@@ -77,14 +77,21 @@ export function getNextOrderableWindow({
 			? addMinutes(times.closingTime, -closingBufferMinutes)
 			: times.closingTime;
 
-		const isOrderable = !isRangeFullyBlocked({
-			start: Math.max(from, openingTime.getTime()),
-			end: closingTime.getTime(),
+		// Where ordering could start in this window, and where busy windows let it
+		// actually start. They differ when a block covers the front of the window.
+		const windowStart = Math.max(from, openingTime.getTime());
+		const orderableFrom = getFirstUnblockedTime({
+			from: windowStart,
 			busyRanges,
 		});
 
-		if (isOrderable) {
-			return { ...times, openingTime, closingTime };
+		if (orderableFrom < closingTime.getTime()) {
+			return {
+				...times,
+				openingTime:
+					orderableFrom > windowStart ? new Date(orderableFrom) : openingTime,
+				closingTime,
+			};
 		}
 
 		// Nothing left in this window — resume the search after it closes.
