@@ -24,8 +24,10 @@ export type {
 	GenerateLocationFulfillmentScheduleParams,
 	GenerateScheduleParams,
 	GetNextAvailableDatesParams,
+	GetNextOrderableWindowParams,
 	GetOpeningClosingTimeOnDateParams,
 	GetOpeningClosingTimeParams,
+	OpeningClosingTime,
 } from "./schedule";
 export type {
 	FilterBusyTimesFromScheduleParams,
