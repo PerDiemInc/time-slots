@@ -26,26 +26,37 @@ export function toBusinessHoursOverride(
 	};
 }
 
+/** An override only applies to locations of the store it was created for. */
+function isOverrideSameStore(
+	override: BusinessHoursOverrideInput,
+	location: LocationLike,
+): boolean {
+	return override.store_id === location.store_id;
+}
+
 export function getLocationsBusinessHoursOverrides(
 	businessHoursOverrides: BusinessHoursOverrideInput[],
 	locations: LocationLike[],
 ): Record<string, BusinessHoursOverrideOutput[]> {
 	const result: Record<string, BusinessHoursOverrideOutput[]> = {};
 
-	for (const override of businessHoursOverrides) {
-		const { all_locations: allLocations, location_ids: locationIds } =
-			override || {};
+	for (const override of businessHoursOverrides || []) {
+		if (!override) continue;
+		const { all_locations: allLocations, location_ids: locationIds } = override;
 
 		if (allLocations === true) {
 			for (const location of locations || []) {
+				if (!isOverrideSameStore(override, location)) continue;
 				const id = location.location_id;
 				result[id] ??= [];
 				result[id].push(toBusinessHoursOverride(override));
 			}
 		} else {
 			for (const id of locationIds || []) {
-				const location = locations.find((loc) => loc.location_id === id);
-				if (location) {
+				const location = (locations || []).find(
+					(loc) => loc.location_id === id,
+				);
+				if (location && isOverrideSameStore(override, location)) {
 					result[id] ??= [];
 					result[id].push(toBusinessHoursOverride(override));
 				}
