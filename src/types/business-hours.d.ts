@@ -14,6 +14,7 @@ export interface BusinessHour {
 
 /** Raw business-hours override coming from the API. */
 export interface BusinessHoursOverrideInput {
+	store_id?: string;
 	all_locations?: boolean;
 	location_ids?: string[];
 	month: number;

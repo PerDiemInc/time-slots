@@ -9,6 +9,7 @@ export type BusinessHourType = {
 export interface LocationLike {
 	location_id: string;
 	id?: string;
+	store_id?: string;
 	timezone: string;
 	pickup_hours?: BusinessHourInput[];
 	delivery_hours?: BusinessHourInput[];
