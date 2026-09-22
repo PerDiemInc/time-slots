@@ -5,20 +5,22 @@ import { getLocationsBusinessHoursOverrides } from "../src/utils/business-hours"
 
 describe("Business hours overrides", () => {
 	const locations: LocationLike[] = [
-		{ location_id: randomUUID(), timezone: "UTC" },
-		{ location_id: randomUUID(), timezone: "UTC" },
+		{ location_id: randomUUID(), store_id: "store-a", timezone: "UTC" },
+		{ location_id: randomUUID(), store_id: "store-a", timezone: "UTC" },
 	];
 
 	describe("getLocationsBusinessHoursOverrides", () => {
 		describe("When hours override is for all locations", () => {
 			it("should override all locations hours", () => {
 				const override: BusinessHoursOverrideInput = {
+					store_id: "store-a",
 					start_time: "07:00",
 					end_time: "17:00",
 					day: 1,
 					month: 3,
 					is_open: true,
 					all_locations: true,
+					location_ids: [],
 				};
 
 				const result = getLocationsBusinessHoursOverrides(
@@ -33,6 +35,7 @@ describe("Business hours overrides", () => {
 		describe("When hours override is for specific locations", () => {
 			it("should override only specified location hours", () => {
 				const override: BusinessHoursOverrideInput = {
+					store_id: "store-a",
 					start_time: "07:00",
 					end_time: "17:00",
 					day: 1,
@@ -75,6 +78,7 @@ describe("Business hours overrides", () => {
 					month: 3,
 					is_open: true,
 					all_locations: true,
+					location_ids: [],
 				};
 
 				const result = getLocationsBusinessHoursOverrides(
