@@ -28,6 +28,7 @@ export type {
 	GetOpeningClosingTimeOnDateParams,
 	GetOpeningClosingTimeParams,
 	OpeningClosingTime,
+	OrderableWindow,
 } from "./schedule";
 export type {
 	FilterBusyTimesFromScheduleParams,

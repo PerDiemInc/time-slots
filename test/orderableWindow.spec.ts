@@ -423,6 +423,327 @@ describe("getNextOrderableWindow", () => {
 				"2026-08-11T14:00:00.000Z",
 			);
 		});
+
+		it("ends the day at the afternoon shift's close", () => {
+			const window = nextWindow({
+				location: splitShiftLocation,
+				now: new Date("2026-08-11T10:00:00Z").getTime(),
+				closingBuffer: 30,
+			});
+
+			expect(window?.dayClosingTime.toISOString()).toBe(
+				"2026-08-11T17:30:00.000Z",
+			);
+		});
+
+		it("ends the day with the window when it is the last shift", () => {
+			const window = nextWindow({
+				location: splitShiftLocation,
+				now: new Date("2026-08-11T15:00:00Z").getTime(),
+			});
+
+			expect(window?.dayClosingTime).toEqual(window?.closingTime);
+		});
+
+		it("ends the day at the morning shift when the afternoon is blocked", () => {
+			const window = nextWindow({
+				location: splitShiftLocation,
+				now: new Date("2026-08-11T10:00:00Z").getTime(),
+				busyTimes: [busy("2026-08-11T14:00:00Z", "2026-08-11T18:00:00Z")],
+			});
+
+			expect(window?.dayClosingTime.toISOString()).toBe(
+				"2026-08-11T12:00:00.000Z",
+			);
+		});
+	});
+
+	describe("the day's closing time", () => {
+		// Every day: 07:00–10:00, 11:00–15:00 and 17:00–22:00
+		const threeShiftLocation = {
+			location_id: "loc-6",
+			timezone: "UTC",
+			pickup_hours: [0, 1, 2, 3, 4, 5, 6].flatMap((day) => [
+				{ day, start_time: "07:00", end_time: "10:00" },
+				{ day, start_time: "11:00", end_time: "15:00" },
+				{ day, start_time: "17:00", end_time: "22:00" },
+			]),
+			delivery_hours: [],
+		} as unknown as LocationLike;
+		const TUESDAY_BREAKFAST = new Date("2026-08-11T08:00:00Z").getTime();
+		const dayClosingTimeOf = (overrides: Record<string, unknown> = {}) =>
+			nextWindow({
+				location: threeShiftLocation,
+				now: TUESDAY_BREAKFAST,
+				closingBuffer: 30,
+				...overrides,
+			})?.dayClosingTime.toISOString();
+
+		it("walks past every break to the last shift", () => {
+			expect(dayClosingTimeOf()).toBe("2026-08-11T21:30:00.000Z");
+		});
+
+		it("walks past a blocked middle shift to an open last one", () => {
+			expect(
+				dayClosingTimeOf({
+					busyTimes: [busy("2026-08-11T11:00:00Z", "2026-08-11T15:00:00Z")],
+				}),
+			).toBe("2026-08-11T21:30:00.000Z");
+		});
+
+		it("stops at the last shift busy times leave open", () => {
+			// 15:00 is not the day's last shift, so it takes no closing buffer
+			expect(
+				dayClosingTimeOf({
+					busyTimes: [busy("2026-08-11T17:00:00Z", "2026-08-11T22:00:00Z")],
+				}),
+			).toBe("2026-08-11T15:00:00.000Z");
+		});
+
+		it("counts a later shift that is only partly blocked", () => {
+			expect(
+				dayClosingTimeOf({
+					busyTimes: [busy("2026-08-11T17:00:00Z", "2026-08-11T20:00:00Z")],
+				}),
+			).toBe("2026-08-11T21:30:00.000Z");
+		});
+
+		it("only lets a category-scoped block stop the day for that category", () => {
+			const busyTimes = [
+				busy("2026-08-11T17:00:00Z", "2026-08-11T22:00:00Z", {
+					threshold: { categoryIds: ["drinks"] },
+				}),
+			];
+
+			expect(dayClosingTimeOf({ busyTimes, cartCategoryIds: ["food"] })).toBe(
+				"2026-08-11T21:30:00.000Z",
+			);
+			expect(dayClosingTimeOf({ busyTimes, cartCategoryIds: ["drinks"] })).toBe(
+				"2026-08-11T15:00:00.000Z",
+			);
+		});
+
+		it("follows a window that opens on a later day", () => {
+			const window = nextWindow({
+				location: threeShiftLocation,
+				now: new Date("2026-08-11T23:00:00Z").getTime(),
+			});
+
+			expect(window?.openingTime.toISOString()).toBe(
+				"2026-08-12T07:00:00.000Z",
+			);
+			expect(window?.dayClosingTime.toISOString()).toBe(
+				"2026-08-12T22:00:00.000Z",
+			);
+		});
+
+		it("is the window's own close on a day an override collapses", () => {
+			const window = nextWindow({
+				location: threeShiftLocation,
+				now: TUESDAY_BREAKFAST,
+				businessHoursOverrides: {
+					"loc-6": [
+						{ month: 8, day: 11, startTime: "08:00", endTime: "14:00" },
+					],
+				},
+			});
+
+			expect(window?.closingTime.toISOString()).toBe(
+				"2026-08-11T14:00:00.000Z",
+			);
+			expect(window?.dayClosingTime).toEqual(window?.closingTime);
+		});
+
+		it("buffers an override that replaces split hours like any single window", () => {
+			const window = nextWindow({
+				location: threeShiftLocation,
+				now: TUESDAY_BREAKFAST,
+				openingBuffer: 15,
+				closingBuffer: 30,
+				businessHoursOverrides: {
+					"loc-6": [
+						{ month: 8, day: 11, startTime: "08:00", endTime: "14:00" },
+					],
+				},
+			});
+
+			expect(window?.isFirstShift).toBe(true);
+			expect(window?.isLastShift).toBe(true);
+			expect(window?.openingTime.toISOString()).toBe(
+				"2026-08-11T08:15:00.000Z",
+			);
+			expect(window?.closingTime.toISOString()).toBe(
+				"2026-08-11T13:30:00.000Z",
+			);
+			expect(window?.dayClosingTime).toEqual(window?.closingTime);
+		});
+
+		it("stays within the day when shifts overlap", () => {
+			const overlappingLocation = {
+				...threeShiftLocation,
+				pickup_hours: [0, 1, 2, 3, 4, 5, 6].flatMap((day) => [
+					{ day, start_time: "09:00", end_time: "12:00" },
+					{ day, start_time: "10:00", end_time: "11:00" },
+				]),
+			} as unknown as LocationLike;
+
+			expect(
+				nextWindow({
+					location: overlappingLocation,
+					now: new Date("2026-08-11T09:30:00Z").getTime(),
+				})?.dayClosingTime.toISOString(),
+			).toBe("2026-08-11T12:00:00.000Z");
+		});
+	});
+
+	describe("the day's closing time at the edges", () => {
+		const locationWith = (
+			pickupHours: { day: number; start_time: string; end_time: string }[],
+			timezone = "America/New_York",
+		) =>
+			({
+				location_id: "loc-7",
+				store_id: "store-1",
+				timezone,
+				pickup_hours: pickupHours,
+				delivery_hours: [],
+			}) as unknown as LocationLike;
+		const everyDay = (...shifts: [string, string][]) =>
+			[0, 1, 2, 3, 4, 5, 6].flatMap((day) =>
+				shifts.map(([start_time, end_time]) => ({ day, start_time, end_time })),
+			);
+		const lunchAndDinner = everyDay(["11:00", "15:00"], ["17:00", "22:00"]);
+		const windowAt = (
+			location: LocationLike,
+			iso: string,
+			overrides: Record<string, unknown> = {},
+		) => nextWindow({ location, now: new Date(iso).getTime(), ...overrides });
+
+		// Shift times on clock-change days are an hour out in setHmOnDate, an older
+		// bug of its own, so these only check the walk reaches dinner's own close.
+		it("reaches dinner's close on the day the clocks fall back", () => {
+			const location = locationWith(lunchAndDinner);
+			const atLunch = windowAt(location, "2026-11-01T17:30:00Z");
+			const atDinner = windowAt(location, "2026-11-01T23:30:00Z");
+
+			expect(atLunch?.isLastShift).toBe(false);
+			expect(atLunch?.dayClosingTime).toEqual(atDinner?.closingTime);
+		});
+
+		it("reaches dinner's close on the day the clocks spring forward", () => {
+			const location = locationWith(lunchAndDinner);
+			const atLunch = windowAt(location, "2026-03-08T16:30:00Z");
+			const atDinner = windowAt(location, "2026-03-08T22:30:00Z");
+
+			expect(atLunch?.isLastShift).toBe(false);
+			expect(atLunch?.dayClosingTime).toEqual(atDinner?.closingTime);
+		});
+
+		it("stops at lunch when the closing buffer swallows the dinner shift", () => {
+			// 17:00–17:20 less a 30 minute buffer leaves nothing to order in
+			const window = windowAt(
+				locationWith(everyDay(["11:00", "15:00"], ["17:00", "17:20"])),
+				"2026-10-07T16:30:00Z",
+				{ closingBuffer: 30 },
+			);
+
+			expect(window?.dayClosingTime.toISOString()).toBe(
+				"2026-10-07T19:00:00.000Z",
+			);
+		});
+
+		it("walks on from a 00:00 shift when the night before closed earlier", () => {
+			// Mon 05:00–17:00, so Tuesday's 00:00 opens a new day rather than ending a night
+			const window = windowAt(
+				locationWith([
+					{ day: 1, start_time: "05:00", end_time: "17:00" },
+					{ day: 2, start_time: "00:00", end_time: "01:00" },
+					{ day: 2, start_time: "09:00", end_time: "23:59" },
+				]),
+				"2026-10-06T04:30:00Z", // Tue 00:30 EDT
+			);
+
+			expect(window?.dayClosingTime.toISOString()).toBe(
+				"2026-10-07T03:59:00.000Z",
+			);
+		});
+
+		describe("when the night before closes at 24:00", () => {
+			// Mon 04:00–24:00, then Tue 00:00–02:59 and 04:00–13:59
+			const location = locationWith(
+				[
+					{ day: 1, start_time: "04:00", end_time: "24:00" },
+					{ day: 2, start_time: "00:00", end_time: "02:59" },
+					{ day: 2, start_time: "04:00", end_time: "13:59" },
+				],
+				"UTC",
+			);
+
+			it("carries Monday's close into Tuesday's early hours", () => {
+				const window = windowAt(location, "2026-10-05T23:00:00Z");
+
+				expect(window?.dayClosingTime.toISOString()).toBe(
+					"2026-10-06T02:59:00.000Z",
+				);
+			});
+
+			it("closes the night at 02:59 rather than walking into Tuesday's day", () => {
+				const window = windowAt(location, "2026-10-06T01:00:00Z");
+
+				expect(window?.isLastShift).toBe(true);
+				expect(window?.dayClosingTime.toISOString()).toBe(
+					"2026-10-06T02:59:00.000Z",
+				);
+			});
+		});
+
+		it("closes the night at 02:00 when an override ran the night before to 23:59", () => {
+			const window = windowAt(
+				locationWith(
+					[
+						{ day: 1, start_time: "09:00", end_time: "17:00" },
+						{ day: 2, start_time: "00:00", end_time: "02:00" },
+						{ day: 2, start_time: "11:00", end_time: "15:00" },
+					],
+					"UTC",
+				),
+				"2026-10-06T01:00:00Z",
+				{
+					businessHoursOverrides: {
+						"loc-7": [
+							{ month: 10, day: 5, startTime: "18:00", endTime: "23:59" },
+						],
+					},
+				},
+			);
+
+			expect(window?.dayClosingTime.toISOString()).toBe(
+				"2026-10-06T02:00:00.000Z",
+			);
+		});
+
+		it("keeps a lone 00:00 shift as the whole day, as the schedule does", () => {
+			// Tue 18:00–23:59 then only Wed 00:00–02:00
+			const window = windowAt(
+				locationWith(
+					[
+						{ day: 2, start_time: "18:00", end_time: "23:59" },
+						{ day: 3, start_time: "00:00", end_time: "02:00" },
+					],
+					"UTC",
+				),
+				"2026-08-12T01:00:00Z",
+				{ openingBuffer: 15, closingBuffer: 30 },
+			);
+
+			expect(window?.openingTime.toISOString()).toBe(
+				"2026-08-12T00:15:00.000Z",
+			);
+			expect(window?.closingTime.toISOString()).toBe(
+				"2026-08-12T01:30:00.000Z",
+			);
+			expect(window?.dayClosingTime).toEqual(window?.closingTime);
+		});
 	});
 
 	describe("for catering orders", () => {
@@ -473,6 +794,25 @@ describe("getNextOrderableWindow", () => {
 			expect(window?.openingTime.toISOString()).toBe(
 				"2026-08-12T11:00:00.000Z",
 			);
+		});
+
+		it("keeps catering to one window on a split-hours day", () => {
+			const window = nextWindow({
+				location: {
+					...cateringLocation,
+					pickup_hours: [0, 1, 2, 3, 4, 5, 6].flatMap((day) => [
+						{ day, start_time: "09:00", end_time: "12:00" },
+						{ day, start_time: "14:00", end_time: "21:00" },
+					]),
+				},
+				isCatering: true,
+				now: new Date("2026-08-11T11:30:00Z").getTime(),
+			});
+
+			expect(window?.closingTime.toISOString()).toBe(
+				"2026-08-11T15:00:00.000Z",
+			);
+			expect(window?.dayClosingTime).toEqual(window?.closingTime);
 		});
 
 		it("returns null when catering is on but the location has no catering hours", () => {
@@ -560,6 +900,74 @@ describe("getNextOrderableWindow", () => {
 			expect(window?.closingTime.toISOString()).toBe(
 				"2026-08-12T01:30:00.000Z",
 			);
+		});
+
+		describe("with a split day after it", () => {
+			// Tuesday 18:00 → Wednesday 02:00, then Wednesday 11:00–15:00 and
+			// 18:00 → Thursday 02:00
+			const lateNightSplitLocation = {
+				...lateNightLocation,
+				pickup_hours: [
+					{ day: 2, start_time: "18:00", end_time: "23:59" },
+					{ day: 3, start_time: "00:00", end_time: "02:00" },
+					{ day: 3, start_time: "11:00", end_time: "15:00" },
+					{ day: 3, start_time: "18:00", end_time: "23:59" },
+					{ day: 4, start_time: "00:00", end_time: "02:00" },
+				],
+			} as unknown as LocationLike;
+			const WEDNESDAY_1AM = new Date("2026-08-12T01:00:00Z").getTime();
+
+			it("closes the night at 02:00, not at the end of Wednesday", () => {
+				const window = nextWindow({
+					location: lateNightSplitLocation,
+					now: WEDNESDAY_1AM,
+				});
+
+				expect(window?.dayClosingTime.toISOString()).toBe(
+					"2026-08-12T02:00:00.000Z",
+				);
+			});
+
+			it("buffers the night the same way from either side of midnight", () => {
+				const fromTuesday = nextWindow({
+					location: lateNightSplitLocation,
+					now: TUESDAY_EVENING,
+					openingBuffer: 15,
+					closingBuffer: 30,
+				});
+				const fromWednesday = nextWindow({
+					location: lateNightSplitLocation,
+					now: WEDNESDAY_1AM,
+					openingBuffer: 15,
+					closingBuffer: 30,
+				});
+
+				expect(fromTuesday?.closingTime.toISOString()).toBe(
+					"2026-08-12T01:30:00.000Z",
+				);
+				// the store has been open since Tuesday, so 00:00 takes no opening buffer
+				expect(fromWednesday?.openingTime.toISOString()).toBe(
+					"2026-08-12T00:00:00.000Z",
+				);
+				expect(fromWednesday?.closingTime.toISOString()).toBe(
+					"2026-08-12T01:30:00.000Z",
+				);
+			});
+
+			it("opens Wednesday's own day at 11:00 with the opening buffer", () => {
+				const window = nextWindow({
+					location: lateNightSplitLocation,
+					now: new Date("2026-08-12T05:00:00Z").getTime(),
+					openingBuffer: 15,
+				});
+
+				expect(window?.openingTime.toISOString()).toBe(
+					"2026-08-12T11:15:00.000Z",
+				);
+				expect(window?.dayClosingTime.toISOString()).toBe(
+					"2026-08-13T02:00:00.000Z",
+				);
+			});
 		});
 
 		it("falls through when a busy window covers the rest of the night", () => {

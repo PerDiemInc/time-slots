@@ -23,6 +23,7 @@ const allDaysPickupHours = [
 function makeLocation(overrides: Partial<LocationLike> = {}): LocationLike {
 	return {
 		location_id: "loc-test",
+		store_id: "store-1",
 		timezone: "UTC",
 		pickup_hours: allDaysPickupHours,
 		...overrides,
@@ -352,6 +353,7 @@ describe("getOpeningClosingTimeOnDate", () => {
 			const businessHours = getLocationBusinessHoursForFulfillment(
 				{
 					location_id: "loc-test",
+					store_id: "store-1",
 					timezone: "UTC",
 					pickup_hours: [],
 				},
@@ -373,6 +375,7 @@ describe("getOpeningClosingTimeOnDate", () => {
 			const businessHours = getLocationBusinessHoursForFulfillment(
 				{
 					location_id: "loc-test",
+					store_id: "store-1",
 					timezone: "UTC",
 					pickup_hours: [{ day: 0, start_time: "09:00", end_time: "17:00" }],
 				},
@@ -398,6 +401,7 @@ describe("getOpeningClosingTimeOnDate", () => {
 			const businessHours = getLocationBusinessHoursForFulfillment(
 				{
 					location_id: "loc-test",
+					store_id: "store-1",
 					timezone: "UTC",
 					pickup_hours: [
 						{ day: 0, start_time: "09:00", end_time: "12:00" },
@@ -426,6 +430,7 @@ describe("getOpeningClosingTimeOnDate", () => {
 			const businessHours = getLocationBusinessHoursForFulfillment(
 				{
 					location_id: "loc-test",
+					store_id: "store-1",
 					timezone: "UTC",
 					pickup_hours: [
 						{ day: 0, start_time: "09:00", end_time: "17:00" },
@@ -459,6 +464,7 @@ describe("getOpeningClosingTimeOnDate", () => {
 			const businessHours = getLocationBusinessHoursForFulfillment(
 				{
 					location_id: "loc-test",
+					store_id: "store-1",
 					timezone: "UTC",
 					pickup_hours: [
 						{ day: 0, start_time: "09:00", end_time: "17:00" },
@@ -498,6 +504,7 @@ describe("getOpeningClosingTimeOnDate", () => {
 			const businessHours = getLocationBusinessHoursForFulfillment(
 				{
 					location_id: "loc-test",
+					store_id: "store-1",
 					timezone: "UTC",
 					pickup_hours: [
 						{ day: 0, start_time: "09:00", end_time: "17:00" },
@@ -535,6 +542,137 @@ describe("getOpeningClosingTimeOnDate", () => {
 
 			expect(times?.openingTime).toEqual(new Date("2024-12-31T09:00:00.000Z"));
 			expect(times?.closingTime).toEqual(new Date("2024-12-31T17:00:00.000Z"));
+		});
+	});
+
+	describe("when an override replaces a day with split hours", () => {
+		it("collapses the day to the override's single window", () => {
+			const businessHours = getLocationBusinessHoursForFulfillment(
+				{
+					location_id: "loc-test",
+					store_id: "store-1",
+					timezone: "UTC",
+					pickup_hours: [
+						{ day: 2, start_time: "11:00", end_time: "15:00" },
+						{ day: 2, start_time: "17:00", end_time: "22:00" },
+					],
+				},
+				"PICKUP",
+			);
+
+			const times = getOpeningClosingTimeOnDate({
+				date: new Date("2026-08-11T09:00:00.000Z"),
+				timeZone: "UTC",
+				businessHours,
+				businessHoursOverrides: [
+					{ month: 8, day: 11, startTime: "12:00", endTime: "18:00" },
+				],
+			});
+
+			expect(times?.openingTime).toEqual(new Date("2026-08-11T12:00:00.000Z"));
+			expect(times?.closingTime).toEqual(new Date("2026-08-11T18:00:00.000Z"));
+			expect(times?.isFirstShift).toBe(true);
+			expect(times?.isLastShift).toBe(true);
+		});
+
+		it("fills an override with no end time out to the end of the day", () => {
+			const businessHours = getLocationBusinessHoursForFulfillment(
+				{
+					location_id: "loc-test",
+					store_id: "store-1",
+					timezone: "UTC",
+					pickup_hours: [
+						{ day: 2, start_time: "11:00", end_time: "15:00" },
+						{ day: 2, start_time: "17:00", end_time: "22:00" },
+					],
+				},
+				"PICKUP",
+			);
+
+			const times = getOpeningClosingTimeOnDate({
+				date: new Date("2026-08-11T09:00:00.000Z"),
+				timeZone: "UTC",
+				businessHours,
+				businessHoursOverrides: [
+					{ month: 8, day: 11, startTime: "12:00", endTime: null },
+				],
+			});
+
+			expect(times?.openingTime).toEqual(new Date("2026-08-11T12:00:00.000Z"));
+			expect(times?.closingTime).toEqual(new Date("2026-08-11T23:59:00.000Z"));
+			expect(times?.isLastShift).toBe(true);
+		});
+	});
+
+	describe("when a day starts with the tail of the night before", () => {
+		// Monday 18:00 → Tuesday 02:00, then Tuesday 11:00–15:00 and 18:00–23:59
+		const lateNightHours = getLocationBusinessHoursForFulfillment(
+			{
+				location_id: "loc-test",
+				store_id: "store-1",
+				timezone: "UTC",
+				pickup_hours: [
+					{ day: 1, start_time: "18:00", end_time: "23:59" },
+					{ day: 2, start_time: "00:00", end_time: "02:00" },
+					{ day: 2, start_time: "11:00", end_time: "15:00" },
+					{ day: 2, start_time: "18:00", end_time: "23:59" },
+				],
+			},
+			"PICKUP",
+		);
+		const shiftAt = (
+			iso: string,
+			businessHoursOverrides: {
+				month: number;
+				day: number;
+				startTime: string | null;
+				endTime: string | null;
+			}[] = [],
+		) =>
+			getOpeningClosingTimeOnDate({
+				date: new Date(iso),
+				timeZone: "UTC",
+				businessHours: lateNightHours,
+				businessHoursOverrides,
+			});
+
+		it("marks the 00:00 shift as closing the night, not opening the day", () => {
+			const times = shiftAt("2026-08-11T01:00:00.000Z");
+
+			expect(times?.closingTime).toEqual(new Date("2026-08-11T02:00:00.000Z"));
+			expect(times?.isFirstShift).toBe(false);
+			expect(times?.isLastShift).toBe(true);
+		});
+
+		it("makes the shift after the tail the day's first", () => {
+			const times = shiftAt("2026-08-11T05:00:00.000Z");
+
+			expect(times?.openingTime).toEqual(new Date("2026-08-11T11:00:00.000Z"));
+			expect(times?.isFirstShift).toBe(true);
+			expect(times?.isLastShift).toBe(false);
+		});
+
+		it("keeps a 00:00 shift as the first when the night before closed earlier", () => {
+			const earlyNightHours = lateNightHours.map((hour) =>
+				hour.day === 1 ? { ...hour, endTime: "22:00" } : hour,
+			);
+			const times = getOpeningClosingTimeOnDate({
+				date: new Date("2026-08-11T01:00:00.000Z"),
+				timeZone: "UTC",
+				businessHours: earlyNightHours,
+			});
+
+			expect(times?.isFirstShift).toBe(true);
+			expect(times?.isLastShift).toBe(false);
+		});
+
+		it("keeps a 00:00 shift as the first when an override closed the day before", () => {
+			const times = shiftAt("2026-08-11T01:00:00.000Z", [
+				{ month: 8, day: 10, startTime: null, endTime: null },
+			]);
+
+			expect(times?.isFirstShift).toBe(true);
+			expect(times?.isLastShift).toBe(false);
 		});
 	});
 });

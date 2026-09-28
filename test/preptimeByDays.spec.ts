@@ -21,6 +21,7 @@ const STANDARD_PICKUP_HOURS = [
 function makeLocation(overrides: Partial<LocationLike> = {}): LocationLike {
 	return {
 		location_id: "loc-test",
+		store_id: "store-1",
 		timezone: "UTC",
 		pickup_hours: STANDARD_PICKUP_HOURS,
 		...overrides,

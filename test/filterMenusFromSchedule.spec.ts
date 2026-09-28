@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { DaySchedule, MenuType } from "../src/types";
 import { filterMenusFromSchedule } from "../src/utils/schedule-filter";
 
 describe("filterMenusFromSchedule", () => {
@@ -15,7 +16,7 @@ describe("filterMenusFromSchedule", () => {
 						new Date("2023-09-15T12:00:00.000Z"),
 					],
 				},
-			];
+			] as DaySchedule[];
 
 			const menus = [
 				{
@@ -28,7 +29,7 @@ describe("filterMenusFromSchedule", () => {
 						},
 					},
 				},
-			];
+			] as unknown as MenuType[];
 
 			const result = filterMenusFromSchedule({
 				schedule,
@@ -50,7 +51,7 @@ describe("filterMenusFromSchedule", () => {
 						new Date("2023-09-15T10:00:00.000Z"),
 					],
 				},
-			];
+			] as DaySchedule[];
 
 			const menus = [
 				{
@@ -61,7 +62,7 @@ describe("filterMenusFromSchedule", () => {
 						},
 					},
 				},
-			];
+			] as unknown as MenuType[];
 
 			const result = filterMenusFromSchedule({
 				schedule,
@@ -84,7 +85,7 @@ describe("filterMenusFromSchedule", () => {
 						new Date("2023-09-15T09:00:00.000Z"),
 					],
 				},
-			];
+			] as DaySchedule[];
 
 			const result = filterMenusFromSchedule({
 				schedule,
@@ -107,7 +108,7 @@ describe("filterMenusFromSchedule", () => {
 						new Date("2023-09-15T09:00:00.000Z"),
 					],
 				},
-			];
+			] as DaySchedule[];
 
 			const menus = [
 				{
@@ -118,7 +119,7 @@ describe("filterMenusFromSchedule", () => {
 						},
 					},
 				},
-			];
+			] as unknown as MenuType[];
 
 			const result = filterMenusFromSchedule({
 				schedule,

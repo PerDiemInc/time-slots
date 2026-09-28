@@ -17,6 +17,7 @@ const nineToFive = [0, 1, 2, 3, 4, 5, 6].map((day) => ({
 function makeLocation(overrides: Partial<LocationLike> = {}): LocationLike {
 	return {
 		location_id: "loc-test",
+		store_id: "store-1",
 		timezone: "UTC",
 		pickup_hours: nineToFive,
 		...overrides,
