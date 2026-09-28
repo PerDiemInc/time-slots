@@ -3,6 +3,7 @@ import { addMinutes } from "date-fns";
 import type {
 	GetNextOrderableWindowParams,
 	OpeningClosingTime,
+	OrderableWindow,
 } from "../types";
 import { getLocationBusinessHoursForFulfillment } from "./business-hours";
 import {
@@ -35,7 +36,7 @@ export function getNextOrderableWindow({
 	openingBuffer = 0,
 	closingBuffer = 0,
 	now = Date.now(),
-}: GetNextOrderableWindowParams): OpeningClosingTime | null {
+}: GetNextOrderableWindowParams): OrderableWindow | null {
 	if (!location) {
 		return null;
 	}
@@ -56,15 +57,26 @@ export function getNextOrderableWindow({
 		getApplicableBusyTimes({ busyTimes, cartCategoryIds }),
 	);
 
-	let date = new Date(from);
-
-	for (let lookup = 0; lookup < MAX_WINDOW_LOOKUPS; lookup += 1) {
-		const times = getOpeningClosingTimeOnDate({
+	// The shift covering or following `date`, and the last order time in it: the
+	// day's last shift stops short of closing by the closing buffer.
+	const getShift = (date: Date) =>
+		getOpeningClosingTimeOnDate({
 			date,
 			businessHours,
 			businessHoursOverrides: overrides,
 			timeZone: location.timezone,
 		});
+	const getBufferedClosingTime = (shift: OpeningClosingTime) =>
+		shift.isLastShift
+			? addMinutes(shift.closingTime, -closingBufferMinutes)
+			: shift.closingTime;
+	const afterClose = (shift: OpeningClosingTime) =>
+		new Date(shift.closingTime.getTime() + 1);
+
+	let date = new Date(from);
+
+	for (let lookup = 0; lookup < MAX_WINDOW_LOOKUPS; lookup += 1) {
+		const times = getShift(date);
 
 		if (!times?.openingTime || !times?.closingTime) {
 			return null;
@@ -73,9 +85,7 @@ export function getNextOrderableWindow({
 		const openingTime = times.isFirstShift
 			? addMinutes(times.openingTime, openingBufferMinutes)
 			: times.openingTime;
-		const closingTime = times.isLastShift
-			? addMinutes(times.closingTime, -closingBufferMinutes)
-			: times.closingTime;
+		const closingTime = getBufferedClosingTime(times);
 
 		// Where ordering could start in this window, and where busy windows let it
 		// actually start. They differ when a block covers the front of the window.
@@ -86,16 +96,44 @@ export function getNextOrderableWindow({
 		});
 
 		if (orderableFrom < closingTime.getTime()) {
+			// Split hours (11–3, 5–10) come back one shift at a time, so walk the
+			// day's later shifts for when ordering actually ends: past the break,
+			// but not into a shift busy times cover end to end. Runs once, after the
+			// window is found, and only over the shifts left in the day.
+			let dayClosingTime = closingTime;
+			let shift = times;
+			for (
+				let shiftLookup = 0;
+				shiftLookup < MAX_WINDOW_LOOKUPS && !shift.isLastShift;
+				shiftLookup += 1
+			) {
+				const next = getShift(afterClose(shift));
+				// Another day's first shift means this day's shifts ran out, which
+				// only overlapping hours can cause.
+				if (!next || next.isFirstShift) break;
+				shift = next;
+
+				const shiftClosingTime = getBufferedClosingTime(shift);
+				const shiftOrderableFrom = getFirstUnblockedTime({
+					from: shift.openingTime.getTime(),
+					busyRanges,
+				});
+				if (shiftOrderableFrom < shiftClosingTime.getTime()) {
+					dayClosingTime = shiftClosingTime;
+				}
+			}
+
 			return {
 				...times,
 				openingTime:
 					orderableFrom > windowStart ? new Date(orderableFrom) : openingTime,
 				closingTime,
+				dayClosingTime,
 			};
 		}
 
 		// Nothing left in this window — resume the search after it closes.
-		date = new Date(times.closingTime.getTime() + 1);
+		date = afterClose(times);
 	}
 
 	return null;

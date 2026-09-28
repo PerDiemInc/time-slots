@@ -98,6 +98,14 @@ export interface OpeningClosingTime {
 	isLastShift: boolean;
 }
 
+export interface OrderableWindow extends OpeningClosingTime {
+	/**
+	 * When ordering ends for the window's day: the close of its last shift busy
+	 * times leave open, so split hours read past the break.
+	 */
+	dayClosingTime: Date;
+}
+
 export interface GetNextOrderableWindowParams
 	extends GetOpeningClosingTimeParams {
 	busyTimes?: BusyTimeItem[];

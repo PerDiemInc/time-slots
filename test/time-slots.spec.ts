@@ -67,6 +67,7 @@ function buildParams(
 ): GetSchedulesParams {
 	const location: LocationLike = {
 		location_id: "loc-test",
+		store_id: "store-1",
 		timezone,
 		pickup_hours: [
 			{ day: 0, start_time: "09:00", end_time: "17:00" },

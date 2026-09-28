@@ -1,4 +1,4 @@
-import { compareAsc, isBefore } from "date-fns";
+import { addMinutes, compareAsc, isBefore } from "date-fns";
 import { findTimeZone, getZonedTime } from "timezone-support";
 
 import { getNextAvailableDates } from "../schedule/available-dates";
@@ -47,16 +47,29 @@ function getAvailableBusinessHours({
 			override.day === zonedDate.day && override.month === zonedDate.month,
 	);
 
-	const dayBusinessTimes = dayBusinessHours
-		.map((businessHour) => {
-			const effectiveHour = businessHoursOverride
-				? {
-						day: businessHour.day,
+	if (
+		businessHoursOverride &&
+		!businessHoursOverride.startTime &&
+		!businessHoursOverride.endTime
+	) {
+		return { dayBusinessTimes: [], businessHoursOverride };
+	}
+
+	// An override replaces the day's shifts with one window, however many shifts
+	// the day normally has, as the schedule reads it. One copy per shift would
+	// leave the first copy looking like it isn't the day's last.
+	const effectiveHours =
+		businessHoursOverride && dayBusinessHours.length
+			? [
+					{
 						startTime: businessHoursOverride.startTime ?? "00:00",
 						endTime: businessHoursOverride.endTime ?? "23:59",
-					}
-				: businessHour;
+					},
+				]
+			: dayBusinessHours;
 
+	const dayBusinessTimes = effectiveHours
+		.map((effectiveHour) => {
 			const startDate = setHmOnDate(
 				nextAvailableDate,
 				effectiveHour.startTime,
@@ -167,10 +180,33 @@ export function getOpeningClosingTimeOnDate({
 				continue;
 			}
 
+			// A 00:00 shift after a day that ran to midnight is the tail of that night,
+			// not the start of this day, the same call the schedule makes: it closes the
+			// night, and the day's own shifts start after it.
+			const { dayBusinessTimes: prevDayTimes } = getAvailableBusinessHours({
+				businessHours,
+				businessHoursOverrides,
+				timeZone,
+				nextAvailableDate: addMinutes(dayBusinessTimes[0].startDate, -1),
+			});
+			const prevDayLastSlot = prevDayTimes[prevDayTimes.length - 1];
+			const continuesLastNight =
+				dayBusinessTimes.length > 1 &&
+				!!prevDayLastSlot &&
+				isMidnightTransition(
+					prevDayLastSlot.endDate,
+					dayBusinessTimes[0].startDate,
+					timeZone,
+				);
+			const dayShifts = continuesLastNight
+				? dayBusinessTimes.slice(1)
+				: dayBusinessTimes;
+
 			// read before the midnight-transition branch below replaces the slot
-			const isFirstShift = currentSlot === dayBusinessTimes[0];
+			const isFirstShift = currentSlot === dayShifts[0];
 			const isLastShift =
-				currentSlot === dayBusinessTimes[dayBusinessTimes.length - 1];
+				currentSlot === dayShifts[dayShifts.length - 1] ||
+				(continuesLastNight && currentSlot === dayBusinessTimes[0]);
 
 			// Open till 23:59 and back at 00:00 means the store never really closed,
 			// so the two shifts merge into one window.

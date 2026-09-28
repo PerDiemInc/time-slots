@@ -462,6 +462,7 @@ describe("Business Hours Utils", () => {
 		describe("when business is open", () => {
 			it("should return correct business hours override format", () => {
 				const input = {
+					store_id: "store-1",
 					month: 9,
 					day: 15,
 					start_time: "08:00",
@@ -481,6 +482,7 @@ describe("Business Hours Utils", () => {
 		describe("when business is closed", () => {
 			it("should return override with null times", () => {
 				const input = {
+					store_id: "store-1",
 					month: 9,
 					day: 15,
 					start_time: "08:00",
@@ -503,6 +505,7 @@ describe("Business Hours Utils", () => {
 			it("should return pickup hours", () => {
 				const location = {
 					location_id: "loc-1",
+					store_id: "store-1",
 					timezone: "UTC",
 					pickup_hours: [{ day: 1, start_time: "08:00", end_time: "20:00" }],
 					delivery_hours: [{ day: 1, start_time: "09:00", end_time: "19:00" }],
@@ -523,6 +526,7 @@ describe("Business Hours Utils", () => {
 			it("should return delivery hours", () => {
 				const location = {
 					location_id: "loc-1",
+					store_id: "store-1",
 					timezone: "UTC",
 					pickup_hours: [{ day: 1, start_time: "08:00", end_time: "20:00" }],
 					delivery_hours: [{ day: 1, start_time: "09:00", end_time: "19:00" }],
@@ -543,6 +547,7 @@ describe("Business Hours Utils", () => {
 			it("should return pickup hours", () => {
 				const location = {
 					location_id: "loc-1",
+					store_id: "store-1",
 					timezone: "UTC",
 					pickup_hours: [{ day: 1, start_time: "08:00", end_time: "20:00" }],
 					curbside_hours: {
@@ -565,6 +570,7 @@ describe("Business Hours Utils", () => {
 			it("should return curbside hours", () => {
 				const location = {
 					location_id: "loc-1",
+					store_id: "store-1",
 					timezone: "UTC",
 					pickup_hours: [{ day: 1, start_time: "08:00", end_time: "20:00" }],
 					curbside_hours: {
@@ -589,6 +595,7 @@ describe("Business Hours Utils", () => {
 			// shift") must not produce the single catering window twice.
 			const cateringLocation = {
 				location_id: "loc-1",
+				store_id: "store-1",
 				timezone: "America/New_York",
 				pickup_hours: [
 					{ day: 5, start_time: "00:00", end_time: "08:30" },
@@ -656,6 +663,7 @@ describe("Business Hours Utils", () => {
 				const result = getLocationBusinessHoursForFulfillment(
 					{
 						location_id: "loc-1",
+						store_id: "store-1",
 						timezone: "UTC",
 						pickup_hours: [{ day: 5, start_time: "00:00", end_time: "08:30" }],
 						catering: {
@@ -697,6 +705,7 @@ describe("Business Hours Utils", () => {
 			const businessHours = getLocationBusinessHoursForFulfillment(
 				{
 					location_id: "loc-1",
+					store_id: "store-1",
 					timezone: "UTC",
 					pickup_hours: [
 						{ day: 1, start_time: "09:00", end_time: "17:00" },
