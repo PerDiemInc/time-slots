@@ -3,22 +3,44 @@ import { findTimeZone, getUnixTime, getZonedTime } from "timezone-support";
 
 import type { BusinessHour } from "../types";
 
+const MS_PER_MINUTE = 60_000;
+
+/**
+ * The instant `hm` falls on `date`'s calendar day in `timeZone`.
+ *
+ * The UTC offset has to be the one in force at `hm`, not at `date`: on a clock-change
+ * day they differ, and using `date`'s (usually local midnight) puts every later shift
+ * an hour out. Hence two passes: the first lands close enough to read the right offset.
+ * A time the clocks skip stays on the first pass, which moves it forward (02:30 -> 03:30).
+ */
 export function setHmOnDate(date: Date, hm: string, timeZone: string): Date {
 	const [hours, minutes] = String(hm).split(":");
+	const zone = findTimeZone(timeZone);
+	const {
+		year,
+		month,
+		day,
+		zone: dateZone,
+	} = getZonedTime(new Date(date), zone);
 
-	const zonedTime = getZonedTime(new Date(date), findTimeZone(timeZone));
+	const wallClockMs = Date.UTC(
+		year,
+		month - 1,
+		day,
+		hours === "24" ? 23 : Number(hours),
+		hours === "24" ? 59 : Number(minutes),
+	);
+	const toInstantMs = (offsetInMinutes = 0) =>
+		wallClockMs + offsetInMinutes * MS_PER_MINUTE;
+	const offsetAt = (instantMs: number) =>
+		getZonedTime(instantMs, zone).zone?.offset;
+
+	const firstPassMs = toInstantMs(dateZone?.offset);
+	const offset = offsetAt(firstPassMs);
+	const secondPassMs = toInstantMs(offset);
 
 	return new Date(
-		getUnixTime({
-			zone: zonedTime.zone,
-			year: zonedTime.year,
-			month: zonedTime.month,
-			day: zonedTime.day,
-			hours: hours === "24" ? 23 : Number(hours),
-			minutes: hours === "24" ? 59 : Number(minutes),
-			seconds: 0,
-			milliseconds: 0,
-		}),
+		offsetAt(secondPassMs) === offset ? secondPassMs : firstPassMs,
 	);
 }
 

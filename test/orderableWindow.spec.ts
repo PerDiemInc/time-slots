@@ -619,8 +619,6 @@ describe("getNextOrderableWindow", () => {
 			overrides: Record<string, unknown> = {},
 		) => nextWindow({ location, now: new Date(iso).getTime(), ...overrides });
 
-		// Shift times on clock-change days are an hour out in setHmOnDate, an older
-		// bug of its own, so these only check the walk reaches dinner's own close.
 		it("reaches dinner's close on the day the clocks fall back", () => {
 			const location = locationWith(lunchAndDinner);
 			const atLunch = windowAt(location, "2026-11-01T17:30:00Z");
@@ -628,6 +626,10 @@ describe("getNextOrderableWindow", () => {
 
 			expect(atLunch?.isLastShift).toBe(false);
 			expect(atLunch?.dayClosingTime).toEqual(atDinner?.closingTime);
+			// 22:00 EST
+			expect(atLunch?.dayClosingTime).toEqual(
+				new Date("2026-11-02T03:00:00.000Z"),
+			);
 		});
 
 		it("reaches dinner's close on the day the clocks spring forward", () => {
@@ -637,6 +639,10 @@ describe("getNextOrderableWindow", () => {
 
 			expect(atLunch?.isLastShift).toBe(false);
 			expect(atLunch?.dayClosingTime).toEqual(atDinner?.closingTime);
+			// 22:00 EDT
+			expect(atLunch?.dayClosingTime).toEqual(
+				new Date("2026-03-09T02:00:00.000Z"),
+			);
 		});
 
 		it("stops at lunch when the closing buffer swallows the dinner shift", () => {
