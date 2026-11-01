@@ -1,4 +1,4 @@
-import { findTimeZone, getZonedTime } from "timezone-support";
+import { getZonedTime } from "timezone-support";
 
 import type {
 	BusyTimeItem,
@@ -8,6 +8,7 @@ import type {
 } from "../types";
 import { getApplicableBusyTimes } from "./busy-times";
 import { isTimeInRange } from "./time";
+import { findTimeZone } from "./timezone";
 
 // ── Private helpers ─────────────────────────────────────────────────────────
 

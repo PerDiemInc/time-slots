@@ -7,11 +7,12 @@ import {
 	isValid,
 	startOfDay,
 } from "date-fns";
-import { findTimeZone, getZonedTime } from "timezone-support";
+import { getZonedTime } from "timezone-support";
 
 import { MIN_LOOKAHEAD_DAYS } from "../constants";
 import type { GetNextAvailableDatesParams } from "../types";
 import { setHmOnDate } from "../utils/date";
+import { findTimeZone } from "../utils/timezone";
 
 export function getNextAvailableDates({
 	startDate,

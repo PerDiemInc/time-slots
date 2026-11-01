@@ -1,6 +1,6 @@
 {
 	"name": "@perdieminc/time-slots",
-	"version": "1.3.4",
+	"version": "1.3.5",
 	"description": "Generate time slots for scheduling",
 	"keywords": [
 		"time-slots",
@@ -23,6 +23,7 @@
 		"url": "git+https://github.com/PerDiemInc/time-slots.git"
 	},
 	"scripts": {
+		"generate:tz-corrections": "node scripts/generate-timezone-corrections.mjs && biome check --write src/utils/timezone-corrections.ts",
 		"lint": "biome lint .",
 		"lint:fix": "biome lint --write .",
 		"format": "biome check --write .",

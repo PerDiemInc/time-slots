@@ -6,7 +6,7 @@ import {
 	isBefore,
 	max,
 } from "date-fns";
-import { findTimeZone, getZonedTime } from "timezone-support";
+import { getZonedTime } from "timezone-support";
 import { MINUTES_PER_DAY, PREP_TIME_CADENCE } from "../constants";
 import type {
 	BusinessHour,
@@ -20,6 +20,7 @@ import {
 	lastShiftEndsAtMidnight,
 	setHmOnDate,
 } from "../utils/date";
+import { findTimeZone } from "../utils/timezone";
 
 // ── Private helpers ─────────────────────────────────────────────────────────
 

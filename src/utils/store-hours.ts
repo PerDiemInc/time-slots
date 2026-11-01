@@ -1,5 +1,5 @@
 import { addMinutes, compareAsc, isBefore } from "date-fns";
-import { findTimeZone, getZonedTime } from "timezone-support";
+import { getZonedTime } from "timezone-support";
 
 import { getNextAvailableDates } from "../schedule/available-dates";
 import type {
@@ -15,6 +15,7 @@ import {
 	isSameDateInTimeZone,
 	setHmOnDate,
 } from "./date";
+import { findTimeZone } from "./timezone";
 
 // ── Private helpers ─────────────────────────────────────────────────────────
 

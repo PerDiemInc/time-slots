@@ -1,7 +1,8 @@
 import { addDays, compareAsc } from "date-fns";
-import { findTimeZone, getUnixTime, getZonedTime } from "timezone-support";
+import { getUnixTime, getZonedTime } from "timezone-support";
 
 import type { BusinessHour } from "../types";
+import { findTimeZone } from "./timezone";
 
 const MS_PER_MINUTE = 60_000;
 
@@ -11,7 +12,8 @@ const MS_PER_MINUTE = 60_000;
  * The UTC offset has to be the one in force at `hm`, not at `date`: on a clock-change
  * day they differ, and using `date`'s (usually local midnight) puts every later shift
  * an hour out. Hence two passes: the first lands close enough to read the right offset.
- * A time the clocks skip stays on the first pass, which moves it forward (02:30 -> 03:30).
+ * The passes only disagree on a time the clocks skip, and the later one moves it forward
+ * (02:30 -> 03:30), including where midnight itself is skipped.
  */
 export function setHmOnDate(date: Date, hm: string, timeZone: string): Date {
 	const [hours, minutes] = String(hm).split(":");
@@ -40,7 +42,9 @@ export function setHmOnDate(date: Date, hm: string, timeZone: string): Date {
 	const secondPassMs = toInstantMs(offset);
 
 	return new Date(
-		offsetAt(secondPassMs) === offset ? secondPassMs : firstPassMs,
+		offsetAt(secondPassMs) === offset
+			? secondPassMs
+			: Math.max(firstPassMs, secondPassMs),
 	);
 }
 
