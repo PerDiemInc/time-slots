@@ -14,8 +14,8 @@ const DAY_MS = 24 * HOUR_MS;
 const YEARS_AHEAD = 5;
 const STEP_IN_MINUTES = 30;
 
-/** Every locations.timezone and stores.default_timezone value in production, 2026-11-01. */
-const PRODUCTION_ZONES = [
+/** Zones merchants run in, including legacy spellings and fixed-offset names. */
+const MERCHANT_ZONES = [
 	"Africa/Cairo",
 	"Africa/Johannesburg",
 	"Africa/Lagos",
@@ -167,9 +167,9 @@ const changeDays = (timeZone: string) => {
 	return days;
 };
 
-describe("every production and known-problem zone", () => {
+describe("every merchant and known-problem zone", () => {
 	describe.each([
-		...PRODUCTION_ZONES,
+		...MERCHANT_ZONES,
 		...ZONES_WITH_KNOWN_PROBLEMS,
 	])("%s", (timeZone) => {
 		it("shows stored times as stored, and moves skipped ones forward", () => {
