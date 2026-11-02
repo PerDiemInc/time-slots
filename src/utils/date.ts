@@ -48,6 +48,61 @@ export function setHmOnDate(date: Date, hm: string, timeZone: string): Date {
 	);
 }
 
+const MS_PER_DAY = 24 * 60 * MS_PER_MINUTE;
+
+/**
+ * The first instant of the calendar day `year`-`month`-`day` in `timeZone`, worked out
+ * from the package's own tz data so the answer is the same on every server.
+ *
+ * date-fns' `startOfDay`/`addDays` with `{ in: tz() }` resolve a midnight the clocks skip
+ * (Cairo, Beirut, Havana, Santiago...) according to the process time zone: on a UTC server
+ * they land on 23:00 of the day before, so the schedule lists that day twice and drops the
+ * last one. Here a skipped midnight moves forward to the first minute that exists (01:00),
+ * and a repeated one takes its first occurrence.
+ */
+export function startOfDayInTimeZone(
+	year: number,
+	month: number,
+	day: number,
+	timeZone: string,
+): Date {
+	const zone = findTimeZone(timeZone);
+	const wallClockMs = Date.UTC(year, month - 1, day);
+	const offsets = new Set(
+		[wallClockMs - MS_PER_DAY, wallClockMs, wallClockMs + MS_PER_DAY].map(
+			(instantMs) => getZonedTime(instantMs, zone).zone?.offset ?? 0,
+		),
+	);
+	const candidates = [...offsets].map(
+		(offset) => wallClockMs + offset * MS_PER_MINUTE,
+	);
+	const exact = candidates.filter((instantMs) => {
+		const zoned = getZonedTime(instantMs, zone);
+		return (
+			zoned.hours === 0 &&
+			zoned.minutes === 0 &&
+			Date.UTC(zoned.year, zoned.month - 1, zoned.day) === wallClockMs
+		);
+	});
+	return new Date(exact.length ? Math.min(...exact) : Math.max(...candidates));
+}
+
+/** Start of `date`'s calendar day in `timeZone`; see `startOfDayInTimeZone`. */
+export function startOfDateInTimeZone(date: Date, timeZone: string): Date {
+	const { year, month, day } = getZonedTime(date, findTimeZone(timeZone));
+	return startOfDayInTimeZone(year, month, day, timeZone);
+}
+
+/** Start of the calendar day `days` after `date`'s in `timeZone`; see `startOfDayInTimeZone`. */
+export function addDaysInTimeZone(
+	date: Date,
+	days: number,
+	timeZone: string,
+): Date {
+	const { year, month, day } = getZonedTime(date, findTimeZone(timeZone));
+	return startOfDayInTimeZone(year, month, day + days, timeZone);
+}
+
 export function getNextDateForDayOfWeek(
 	targetDayIndex: number,
 	referenceDate: Date = new Date(),

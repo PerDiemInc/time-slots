@@ -1,17 +1,14 @@
-import { tz } from "@date-fns/tz";
-import {
-	addDays,
-	isAfter,
-	isBefore,
-	isSameDay,
-	isValid,
-	startOfDay,
-} from "date-fns";
+import { isAfter, isBefore, isValid } from "date-fns";
 import { getZonedTime } from "timezone-support";
 
 import { MIN_LOOKAHEAD_DAYS } from "../constants";
 import type { GetNextAvailableDatesParams } from "../types";
-import { setHmOnDate } from "../utils/date";
+import {
+	addDaysInTimeZone,
+	isSameDateInTimeZone,
+	setHmOnDate,
+	startOfDateInTimeZone,
+} from "../utils/date";
 import { findTimeZone } from "../utils/timezone";
 
 export function getNextAvailableDates({
@@ -25,11 +22,12 @@ export function getNextAvailableDates({
 	isDaysCadence = false,
 }: GetNextAvailableDatesParams): Date[] {
 	const requestTime = new Date(startDate);
-	startDate = new Date(startOfDay(startDate, { in: tz(timeZone) }));
 
-	if (!isValid(startDate)) {
+	if (!isValid(requestTime)) {
 		return [];
 	}
+
+	startDate = startOfDateInTimeZone(requestTime, timeZone);
 
 	const timeZoneInfo = findTimeZone(timeZone);
 	const dates: Date[] = [];
@@ -39,13 +37,13 @@ export function getNextAvailableDates({
 	for (
 		let date = startDate, maxRuns = 0;
 		dates.length < datesCount && maxRuns <= lookaheadDays;
-		date = new Date(addDays(date, 1, { in: tz(timeZone) })), maxRuns += 1
+		date = addDaysInTimeZone(date, 1, timeZone), maxRuns += 1
 	) {
 		/**
 		 * Skip if date is the same as the last date in the dates array (can happen due to DST)
 		 */
 		const lastDate = dates?.at(-1);
-		if (lastDate && isSameDay(lastDate, date)) {
+		if (lastDate && isSameDateInTimeZone(lastDate, date, timeZone)) {
 			continue;
 		}
 
@@ -96,7 +94,7 @@ export function getNextAvailableDates({
 		}
 
 		if (preSaleDates.length > 0) {
-			if (preSaleDates.some((d) => isSameDay(date, d, { in: tz(timeZone) }))) {
+			if (preSaleDates.some((d) => isSameDateInTimeZone(date, d, timeZone))) {
 				dates.push(date);
 			}
 		} else {

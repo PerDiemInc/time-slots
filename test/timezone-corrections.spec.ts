@@ -6,7 +6,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getSchedules } from "../src/schedule/get-schedules";
 import type { LocationLike } from "../src/types";
-import { setHmOnDate } from "../src/utils/date";
+import {
+	addDaysInTimeZone,
+	setHmOnDate,
+	startOfDateInTimeZone,
+	startOfDayInTimeZone,
+} from "../src/utils/date";
 import { findTimeZone } from "../src/utils/timezone";
 
 const HOUR_MS = 3_600_000;
@@ -280,6 +285,41 @@ describe("zones the bundled tz data has wrong", () => {
 		).toBe(startOfDay);
 	});
 
+	describe("startOfDayInTimeZone / addDaysInTimeZone", () => {
+		it.each([
+			["America/New_York", 2027, 3, 14, "2027-03-14T05:00:00.000Z"],
+			["America/New_York", 2026, 11, 1, "2026-11-01T04:00:00.000Z"],
+			// Midnight is skipped: the day starts at 01:00.
+			["Africa/Cairo", 2027, 4, 30, "2027-04-29T22:00:00.000Z"],
+			["Asia/Beirut", 2026, 3, 29, "2026-03-28T22:00:00.000Z"],
+			["America/Havana", 2027, 3, 14, "2027-03-14T05:00:00.000Z"],
+			// Midnight happens twice: the day starts at the first one.
+			["America/Havana", 2026, 11, 1, "2026-11-01T04:00:00.000Z"],
+			// Month and year roll over.
+			["Asia/Karachi", 2026, 12, 32, "2026-12-31T19:00:00.000Z"],
+		])("%s %i-%i-%i starts at %s on every server", (timeZone, year, month, day, expected) => {
+			expect(
+				startOfDayInTimeZone(year, month, day, timeZone).toISOString(),
+			).toBe(expected);
+		});
+
+		it("steps through Cairo's skipped midnight one day at a time", () => {
+			const eve = startOfDateInTimeZone(
+				new Date("2027-04-29T12:00:00Z"),
+				"Africa/Cairo",
+			);
+			const changeDay = addDaysInTimeZone(eve, 1, "Africa/Cairo");
+			const dayAfter = addDaysInTimeZone(changeDay, 1, "Africa/Cairo");
+			expect(
+				[eve, changeDay, dayAfter].map((date) => date.toISOString()),
+			).toEqual([
+				"2027-04-28T22:00:00.000Z",
+				"2027-04-29T22:00:00.000Z",
+				"2027-04-30T21:00:00.000Z",
+			]);
+		});
+	});
+
 	it("moves a skipped time forward whatever time of day the date is at", () => {
 		const lateEvening = new Date("2027-03-15T03:00:00Z");
 		expect(
@@ -331,6 +371,56 @@ describe("zones the bundled tz data has wrong", () => {
 
 			expect(today.openingTime?.toISOString()).toBe("2027-07-01T06:00:00.000Z");
 			expect(today.closingTime?.toISOString()).toBe("2027-07-01T14:00:00.000Z");
+		});
+
+		/**
+		 * Cairo skips midnight when its clocks go forward (2027-04-30 starts at 01:00). The
+		 * day loop used to resolve that midnight by the process time zone, so on a UTC server
+		 * 04/29 was listed twice and the last day of the window dropped.
+		 */
+		it("lists each day once around Cairo's skipped midnight", () => {
+			vi.setSystemTime(new Date("2027-04-29T07:00:00Z"));
+			const everyDay = [0, 1, 2, 3, 4, 5, 6].map((day) => ({
+				day,
+				start_time: "09:00",
+				end_time: "17:00",
+			}));
+			const location = {
+				location_id: "loc-1",
+				store_id: "store-1",
+				timezone: "Africa/Cairo",
+				pickup_hours: everyDay,
+				delivery_hours: everyDay,
+			} as unknown as LocationLike;
+
+			const schedule = getSchedules({
+				store: {
+					isAsapOrders: false,
+					isSameDayOrders: false,
+					max_future_order_days: 3,
+				},
+				locations: [location],
+				cartItems: [],
+				fulfillmentPreference: "PICKUP",
+				prepTimeSettings: {
+					prepTimeInMinutes: 0,
+					gapInMinutes: 30,
+					fulfillAtBusinessDayStart: false,
+					busyTimes: {},
+				},
+				currentLocation: location,
+			}).schedule;
+
+			expect(
+				schedule.map(
+					(day) =>
+						`${day.openingTime?.toISOString()} ${day.closingTime?.toISOString()}`,
+				),
+			).toEqual([
+				"2027-04-29T07:00:00.000Z 2027-04-29T15:00:00.000Z",
+				"2027-04-30T06:00:00.000Z 2027-04-30T14:00:00.000Z",
+				"2027-05-01T06:00:00.000Z 2027-05-01T14:00:00.000Z",
+			]);
 		});
 	});
 });
