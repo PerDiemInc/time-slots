@@ -17,7 +17,6 @@ const ZONES_WITH_CLOCK_CHANGES = [
 	"America/Los_Angeles",
 	"America/Anchorage",
 	"America/Toronto",
-	"America/Vancouver",
 	"America/Halifax",
 	"America/Havana",
 	"Europe/London",
@@ -217,6 +216,23 @@ describe("setHmOnDate on clock-change days", () => {
 		ZONES_WITHOUT_CLOCK_CHANGES,
 	)("%s has no change days to get wrong", (timeZone) => {
 		expect(findClockChangeDays(timeZone, firstYear)).toEqual([]);
+	});
+
+	// British Columbia stopped changing clocks after March 2026 (tzdata 2026b) and stays on UTC-7.
+	it.each([
+		"2026-11-02",
+		"2027-01-15",
+		"2027-03-15",
+		"2027-11-08",
+	])("keeps Vancouver hours on UTC-7 on %s", (iso) => {
+		const [year, month, day] = iso.split("-").map(Number);
+		const midnight = startOfLocalDay(year, month - 1, day, "America/Vancouver");
+		const opens = setHmOnDate(
+			new Date(midnight.getTime()),
+			"09:00",
+			"America/Vancouver",
+		);
+		expect(opens.toISOString()).toBe(`${iso}T16:00:00.000Z`);
 	});
 });
 
