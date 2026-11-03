@@ -24,7 +24,7 @@ This library helps you:
 - Support **catering** flows with cart-derived prep time (by minute, hour, or day).
 - Filter slots by **busy times** and optional **menu/category** rules.
 
-All date/time logic is timezone-aware (e.g. `America/New_York`). The package supports multiple platforms for timezone handling: **web** (default, uses `@date-fns/tz`) and **ios/android** (uses `timezone-support`).
+All date/time logic is timezone-aware (e.g. `America/New_York`). Every zone conversion goes through `@date-fns/tz`, so the runtime's own tz database decides them all: a second, bundled copy would go stale and disagree with the calendar the app renders.
 
 ## Main API
 

@@ -1,5 +1,3 @@
-import { findTimeZone, getZonedTime } from "timezone-support";
-
 import type {
 	BusyTimeItem,
 	FilterBusyTimesFromScheduleParams,
@@ -8,6 +6,7 @@ import type {
 } from "../types";
 import { getApplicableBusyTimes } from "./busy-times";
 import { isTimeInRange } from "./time";
+import { getZonedParts } from "./zoned";
 
 // ── Private helpers ─────────────────────────────────────────────────────────
 
@@ -88,7 +87,7 @@ export function filterMenusFromSchedule({
 		.map((daySchedule) => ({
 			...daySchedule,
 			slots: daySchedule.slots.filter((slot) => {
-				const zonedSlot = getZonedTime(slot, findTimeZone(timeZone));
+				const zonedSlot = getZonedParts(slot, timeZone);
 				const dayOfWeek = zonedSlot.dayOfWeek;
 
 				if (!menus.length) {

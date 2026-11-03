@@ -6,7 +6,6 @@ import {
 	isBefore,
 	max,
 } from "date-fns";
-import { findTimeZone, getZonedTime } from "timezone-support";
 import { MINUTES_PER_DAY, PREP_TIME_CADENCE } from "../constants";
 import type {
 	BusinessHour,
@@ -20,6 +19,7 @@ import {
 	lastShiftEndsAtMidnight,
 	setHmOnDate,
 } from "../utils/date";
+import { getZonedParts } from "../utils/zoned";
 
 // ── Private helpers ─────────────────────────────────────────────────────────
 
@@ -47,7 +47,7 @@ function getSelectedBusinessHours({
 		return [];
 	}
 
-	const zonedDate = getZonedTime(date, findTimeZone(timeZone));
+	const zonedDate = getZonedParts(date, timeZone);
 	const dayOfWeek = zonedDate.dayOfWeek ?? 0;
 
 	const dayBusinessHours = businessHours?.filter((bh) => bh.day === dayOfWeek);
@@ -81,8 +81,7 @@ function projectTimeOfDay(
 	targetDate: Date,
 	timeZone: string,
 ): Date {
-	const tz = findTimeZone(timeZone);
-	const zonedSource = getZonedTime(source, tz);
+	const zonedSource = getZonedParts(source, timeZone);
 	const hh = String(zonedSource.hours).padStart(2, "0");
 	const mm = String(zonedSource.minutes).padStart(2, "0");
 	return setHmOnDate(targetDate, `${hh}:${mm}`, timeZone);
