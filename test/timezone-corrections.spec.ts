@@ -13,6 +13,7 @@ import {
 	startOfDayInTimeZone,
 } from "../src/utils/date";
 import { findTimeZone } from "../src/utils/timezone";
+import { TIME_ZONE_DATA_VERSION } from "../src/utils/timezone-corrections";
 
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
@@ -158,6 +159,12 @@ const instantsShowing = (
 
 const firstYear = new Date().getUTCFullYear();
 
+/**
+ * Checks against Intl only mean something when this Node's tzdata is at least as new as the
+ * data the corrections came from. On older Node, Intl itself has the old rules.
+ */
+const intlIsCurrent = (process.versions.tz ?? "") >= TIME_ZONE_DATA_VERSION;
+
 /** Days whose offset changes around them; neighbours are included, which only adds checks. */
 const changeDays = (timeZone: string) => {
 	const days: { utcMidnight: number; offsets: number[] }[] = [];
@@ -172,7 +179,7 @@ const changeDays = (timeZone: string) => {
 	return days;
 };
 
-describe("every merchant and known-problem zone", () => {
+describe.runIf(intlIsCurrent)("every merchant and known-problem zone", () => {
 	describe.each([
 		...MERCHANT_ZONES,
 		...ZONES_WITH_KNOWN_PROBLEMS,
@@ -425,7 +432,7 @@ describe("zones the bundled tz data has wrong", () => {
 	});
 });
 
-describe("tz data drift", () => {
+describe.runIf(intlIsCurrent)("tz data drift", () => {
 	/**
 	 * Fails when Node's tz data has rules this package doesn't, for example after a country
 	 * changes its clocks. Fix it with `npm run generate:tz-corrections`, not by editing tests.

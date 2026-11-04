@@ -236,6 +236,24 @@ describe("setHmOnDate on clock-change days", () => {
 	});
 });
 
+// Fixed expectations, so they hold whatever tzdata the Node running the tests has.
+// Alberta (tzdata 2026c) and Manitoba (2026e) stopped changing clocks too.
+describe("Canadian zones that stopped changing clocks", () => {
+	it.each([
+		["America/Vancouver", "2026-11-04", "16:00"],
+		["America/Vancouver", "2027-07-01", "16:00"],
+		["America/Edmonton", "2026-11-04", "15:00"],
+		["America/Edmonton", "2027-07-01", "15:00"],
+		["America/Winnipeg", "2026-11-04", "14:00"],
+		["America/Winnipeg", "2027-07-01", "14:00"],
+		["America/Toronto", "2026-11-04", "14:00"],
+		["America/Toronto", "2027-07-01", "13:00"],
+	])("opens a %s store at 09:00 on %s at %sZ", (timeZone, iso, utc) => {
+		const opens = setHmOnDate(new Date(`${iso}T20:00:00Z`), "09:00", timeZone);
+		expect(opens.toISOString()).toBe(`${iso}T${utc}:00.000Z`);
+	});
+});
+
 describe("getSchedules on clock-change days", () => {
 	const everyDay = [0, 1, 2, 3, 4, 5, 6].map((day) => ({
 		day,

@@ -14,10 +14,15 @@ export type {
 } from "./types/business-hours";
 export { getLocationsBusinessHoursOverrides } from "./utils/business-hours";
 export {
+	addDaysInTimeZone,
 	getPreSalePickupDates,
+	isSameDateInTimeZone,
 	isTodayInTimeZone,
 	isTomorrowInTimeZone,
 	overrideTimeZoneOnUTC,
+	setHmOnDate,
+	startOfDateInTimeZone,
+	startOfDayInTimeZone,
 } from "./utils/date";
 export { getNextOrderableWindow } from "./utils/orderable-window";
 export {
@@ -28,3 +33,4 @@ export {
 	getOpeningClosingTime,
 	getOpeningClosingTimeOnDate,
 } from "./utils/store-hours";
+export { findTimeZone } from "./utils/timezone";
