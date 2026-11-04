@@ -1,46 +1,25 @@
 import { addDays, compareAsc } from "date-fns";
-import { findTimeZone, getUnixTime, getZonedTime } from "timezone-support";
 
 import type { BusinessHour } from "../types";
+import { getZonedParts, zonedPartsToDate } from "./zoned";
 
-const MS_PER_MINUTE = 60_000;
-
-/**
- * The instant `hm` falls on `date`'s calendar day in `timeZone`.
- *
- * The UTC offset has to be the one in force at `hm`, not at `date`: on a clock-change
- * day they differ, and using `date`'s (usually local midnight) puts every later shift
- * an hour out. Hence two passes: the first lands close enough to read the right offset.
- * A time the clocks skip stays on the first pass, which moves it forward (02:30 -> 03:30).
- */
+/** The instant `hm` falls on `date`'s calendar day in `timeZone`. */
 export function setHmOnDate(date: Date, hm: string, timeZone: string): Date {
 	const [hours, minutes] = String(hm).split(":");
-	const zone = findTimeZone(timeZone);
-	const {
-		year,
-		month,
-		day,
-		zone: dateZone,
-	} = getZonedTime(new Date(date), zone);
+	const { year, month, day } = getZonedParts(date, timeZone);
+	const isEndOfDay = hours === "24";
 
-	const wallClockMs = Date.UTC(
-		year,
-		month - 1,
-		day,
-		hours === "24" ? 23 : Number(hours),
-		hours === "24" ? 59 : Number(minutes),
-	);
-	const toInstantMs = (offsetInMinutes = 0) =>
-		wallClockMs + offsetInMinutes * MS_PER_MINUTE;
-	const offsetAt = (instantMs: number) =>
-		getZonedTime(instantMs, zone).zone?.offset;
-
-	const firstPassMs = toInstantMs(dateZone?.offset);
-	const offset = offsetAt(firstPassMs);
-	const secondPassMs = toInstantMs(offset);
-
-	return new Date(
-		offsetAt(secondPassMs) === offset ? secondPassMs : firstPassMs,
+	return zonedPartsToDate(
+		{
+			year,
+			month,
+			day,
+			hours: isEndOfDay ? 23 : Number(hours),
+			minutes: isEndOfDay ? 59 : Number(minutes),
+			seconds: 0,
+			milliseconds: 0,
+		},
+		timeZone,
 	);
 }
 
@@ -77,39 +56,26 @@ export function overrideTimeZoneOnUTC(
 	date: Date | string,
 	timeZoneB: string,
 ): Date {
-	const timeZoneATime = getZonedTime(new Date(date), findTimeZone("UTC"));
-	const timeZoneBTime = getZonedTime(new Date(date), findTimeZone(timeZoneB));
-
-	return new Date(
-		getUnixTime({
-			...timeZoneATime,
-			zone: timeZoneBTime.zone,
-		}),
-	);
+	return zonedPartsToDate(getZonedParts(date, "UTC"), timeZoneB);
 }
 
 export function isTodayInTimeZone(date: Date, timeZone: string): boolean {
 	if (!date) {
 		return false;
 	}
-	const zonedNow = getZonedTime(Date.now(), findTimeZone(timeZone));
-	const zonedTime = getZonedTime(date, findTimeZone(timeZone));
 
-	return zonedNow.day === zonedTime.day && zonedNow.month === zonedTime.month;
+	return isSameDateInTimeZone(new Date(Date.now()), date, timeZone);
 }
 
 export function isTomorrowInTimeZone(date: Date, timeZone: string): boolean {
-	const zonedNow = getZonedTime(addDays(Date.now(), 1), findTimeZone(timeZone));
-	const zonedTime = getZonedTime(date, findTimeZone(timeZone));
-
-	return zonedNow.day === zonedTime.day && zonedNow.month === zonedTime.month;
+	return isSameDateInTimeZone(addDays(Date.now(), 1), date, timeZone);
 }
 
 /** Returns YYYY-MM-DD for the given date in the given timezone. */
 export function toDateStringInTimeZone(date: Date, timeZone: string): string {
-	const z = getZonedTime(date, findTimeZone(timeZone));
+	const { year, month, day } = getZonedParts(date, timeZone);
 	const pad = (n: number) => String(n).padStart(2, "0");
-	return `${z.year}-${pad(z.month)}-${pad(z.day)}`;
+	return `${year}-${pad(month)}-${pad(day)}`;
 }
 
 export function isSameDateInTimeZone(
@@ -117,8 +83,8 @@ export function isSameDateInTimeZone(
 	dateRight: Date,
 	timeZone: string,
 ): boolean {
-	const zonedDateLeft = getZonedTime(dateLeft, findTimeZone(timeZone));
-	const zonedDateRight = getZonedTime(dateRight, findTimeZone(timeZone));
+	const zonedDateLeft = getZonedParts(dateLeft, timeZone);
+	const zonedDateRight = getZonedParts(dateRight, timeZone);
 
 	return (
 		zonedDateLeft.year === zonedDateRight.year &&
@@ -135,8 +101,8 @@ export function isMidnightTransition(
 	if (!endDate || !startDateNextDay) {
 		return false;
 	}
-	const zonedEndDate = getZonedTime(endDate, findTimeZone(timeZone));
-	const zonedStartDate = getZonedTime(startDateNextDay, findTimeZone(timeZone));
+	const zonedEndDate = getZonedParts(endDate, timeZone);
+	const zonedStartDate = getZonedParts(startDateNextDay, timeZone);
 
 	return (
 		zonedEndDate.hours === 23 &&

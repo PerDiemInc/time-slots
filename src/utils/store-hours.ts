@@ -1,5 +1,4 @@
 import { addMinutes, compareAsc, isBefore } from "date-fns";
-import { findTimeZone, getZonedTime } from "timezone-support";
 
 import { getNextAvailableDates } from "../schedule/available-dates";
 import type {
@@ -15,6 +14,7 @@ import {
 	isSameDateInTimeZone,
 	setHmOnDate,
 } from "./date";
+import { getZonedParts } from "./zoned";
 
 // ── Private helpers ─────────────────────────────────────────────────────────
 
@@ -34,12 +34,10 @@ function getAvailableBusinessHours({
 	dayBusinessTimes: Array<{ startDate: Date; endDate: Date }>;
 	businessHoursOverride: BusinessHoursOverrideOutput | undefined;
 } {
-	const zonedDate = getZonedTime(nextAvailableDate, findTimeZone(timeZone));
+	const zonedDate = getZonedParts(nextAvailableDate, timeZone);
 
 	const dayBusinessHours = businessHours.filter(
-		(bh) =>
-			bh.day ===
-			getZonedTime(nextAvailableDate, findTimeZone(timeZone)).dayOfWeek,
+		(bh) => bh.day === zonedDate.dayOfWeek,
 	);
 
 	const businessHoursOverride = businessHoursOverrides.find(

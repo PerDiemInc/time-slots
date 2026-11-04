@@ -174,13 +174,20 @@ describe("setHmOnDate on clock-change days", () => {
 	});
 
 	describe.each(ZONES_WITH_CLOCK_CHANGES)("%s", (timeZone) => {
+		const changeDaysByYear = new Map(
+			years.map((year) => [year, findClockChangeDays(timeZone, year)]),
+		);
+
+		// Per year would be wrong: a zone can leave daylight saving for good, as
+		// British Columbia did, and then later years hold no change day at all.
+		it("changes its clocks somewhere in the range", () => {
+			expect([...changeDaysByYear.values()].flat().length).toBeGreaterThan(0);
+		});
+
 		it.each(
 			years,
 		)("shows every stored time as stored on %i's change days", (year) => {
-			const changeDays = findClockChangeDays(timeZone, year);
-			expect(changeDays.length).toBeGreaterThan(0);
-
-			for (const day of changeDays) {
+			for (const day of changeDaysByYear.get(year) ?? []) {
 				const midnight = new Date(day.getTime());
 				for (
 					let minutes = 0;

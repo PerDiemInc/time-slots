@@ -25,7 +25,7 @@ export type PrepTimeCadence =
 	(typeof PREP_TIME_CADENCE)[keyof typeof PREP_TIME_CADENCE];
 
 /**
- * Platform for timezone handling (web uses @date-fns/tz; ios/android use timezone-support).
+ * Platform the schedule is generated for.
  */
 export const PLATFORM = {
 	WEB: "web",
