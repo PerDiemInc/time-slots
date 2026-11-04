@@ -273,6 +273,12 @@ describe("zones the bundled tz data has wrong", () => {
 		expect(() => findTimeZone("Not/AZone")).toThrow();
 	});
 
+	it("throws on names that are Object prototype keys", () => {
+		for (const name of ["constructor", "toString", "__proto__"]) {
+			expect(() => findTimeZone(name), name).toThrow();
+		}
+	});
+
 	it("keeps the bundled history before the corrected rules", () => {
 		const past = Date.UTC(2015, 6, 1);
 		expect(getUTCOffset(past, findTimeZone("Africa/Cairo")).offset).toBe(

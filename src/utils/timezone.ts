@@ -10,5 +10,7 @@ import { TIME_ZONE_CORRECTIONS } from "./timezone-corrections";
 export function findTimeZone(
 	timeZone: string,
 ): ReturnType<typeof findBundledTimeZone> {
-	return TIME_ZONE_CORRECTIONS[timeZone] ?? findBundledTimeZone(timeZone);
+	return Object.hasOwn(TIME_ZONE_CORRECTIONS, timeZone)
+		? TIME_ZONE_CORRECTIONS[timeZone]
+		: findBundledTimeZone(timeZone);
 }
