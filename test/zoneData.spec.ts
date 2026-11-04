@@ -12,6 +12,7 @@ import type {
 import {
 	isTodayInTimeZone,
 	isTomorrowInTimeZone,
+	setHmOnDate,
 	toDateStringInTimeZone,
 } from "../src/utils/date";
 
@@ -134,5 +135,43 @@ describe.each(ZONES)("a store in %s", (timeZone) => {
 				dateInZone(day.date, timeZone),
 			);
 		});
+	});
+});
+
+/**
+ * The wall clock a store keeps is the store's, so the machine reading it must not
+ * change the answer. `new TZDate(y, m, d, ...)` resolved a wall clock against the
+ * host's own offset around a transition, which moved a store's opening by an hour on
+ * a device in another zone while CI, running in UTC, stayed green.
+ */
+describe("host zone independence", () => {
+	const HOSTS = [
+		"UTC",
+		"America/Chicago",
+		"America/Los_Angeles",
+		"Asia/Tokyo",
+		"Australia/Sydney",
+	];
+	const hostTimeZone = process.env.TZ;
+
+	afterEach(() => {
+		process.env.TZ = hostTimeZone;
+		new Date();
+	});
+
+	it.each([
+		["the 01:30 that happens twice", "America/New_York", "2026-11-01T04:00:00Z", "01:30"],
+		["the 02:30 the clocks skip", "America/New_York", "2027-03-14T05:00:00Z", "02:30"],
+		["a zone that never changes its clocks", "America/Phoenix", "2026-03-08T07:00:00Z", "02:00"],
+		["a British Columbia opening", "America/Vancouver", "2026-11-03T08:00:00Z", "08:00"],
+	])("resolves %s the same way on every host zone", (_label, timeZone, date, hm) => {
+		const resolved = HOSTS.map((host) => {
+			process.env.TZ = host;
+			new Date();
+
+			return setHmOnDate(new Date(date), hm, timeZone).toISOString();
+		});
+
+		expect(new Set(resolved).size).toBe(1);
 	});
 });

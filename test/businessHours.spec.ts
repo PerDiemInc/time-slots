@@ -80,7 +80,7 @@ describe("Business Hours Utils", () => {
 
 	describe("getOpeningClosingTimeOnDate", () => {
 		const testDate = overrideTimeZoneOnUTC(
-			new Date("2025-03-11T06:00:00"),
+			new Date("2025-03-11T06:00:00Z"),
 			timezone,
 		);
 
@@ -99,12 +99,12 @@ describe("Business Hours Utils", () => {
 			const businessHours = [{ day: 2, startTime: "09:00", endTime: "17:00" }];
 
 			const opening = setHmOnDate(
-				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00Z"), timezone),
 				"09:00",
 				timezone,
 			);
 			const closing = setHmOnDate(
-				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00Z"), timezone),
 				"17:00",
 				timezone,
 			);
@@ -128,12 +128,12 @@ describe("Business Hours Utils", () => {
 			const businessHours = [{ day: 1, startTime: "09:00", endTime: "17:00" }];
 
 			const opening = setHmOnDate(
-				overrideTimeZoneOnUTC(new Date("2025-03-17T06:00:00"), timezone),
+				overrideTimeZoneOnUTC(new Date("2025-03-17T06:00:00Z"), timezone),
 				"09:00",
 				timezone,
 			);
 			const closing = setHmOnDate(
-				overrideTimeZoneOnUTC(new Date("2025-03-17T06:00:00"), timezone),
+				overrideTimeZoneOnUTC(new Date("2025-03-17T06:00:00Z"), timezone),
 				"17:00",
 				timezone,
 			);
@@ -161,12 +161,12 @@ describe("Business Hours Utils", () => {
 			];
 
 			const overrideOpening = setHmOnDate(
-				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00Z"), timezone),
 				"10:00",
 				timezone,
 			);
 			const overrideClosing = setHmOnDate(
-				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00Z"), timezone),
 				"15:00",
 				timezone,
 			);
@@ -193,12 +193,12 @@ describe("Business Hours Utils", () => {
 			];
 
 			const morningOpen = setHmOnDate(
-				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00Z"), timezone),
 				"09:00",
 				timezone,
 			);
 			const afternoonClose = setHmOnDate(
-				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00Z"), timezone),
 				"12:00",
 				timezone,
 			);
@@ -227,7 +227,7 @@ describe("Business Hours Utils", () => {
 			};
 
 			vi.useFakeTimers();
-			vi.setSystemTime(new Date("2025-03-11T06:00:00"));
+			vi.setSystemTime(new Date("2025-03-11T06:00:00Z"));
 
 			const pickup = getOpeningClosingTime({
 				location: location as never,
@@ -246,7 +246,7 @@ describe("Business Hours Utils", () => {
 
 			expect(pickup?.openingTime).toEqual(
 				setHmOnDate(
-					overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+					overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00Z"), timezone),
 					"09:00",
 					timezone,
 				),
@@ -255,7 +255,7 @@ describe("Business Hours Utils", () => {
 			// the override wins for delivery, and only for the location it is keyed to
 			expect(delivery?.openingTime).toEqual(
 				setHmOnDate(
-					overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+					overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00Z"), timezone),
 					"11:00",
 					timezone,
 				),
@@ -290,7 +290,7 @@ describe("Business Hours Utils", () => {
 
 			expect(result?.openingTime).toEqual(
 				setHmOnDate(
-					overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+					overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00Z"), timezone),
 					"10:00",
 					timezone,
 				),
@@ -328,7 +328,7 @@ describe("Business Hours Utils", () => {
 			const result = getOpeningClosingTimeOnDate({
 				// 16:00 on the 11th, after that day's override window has ended
 				date: setHmOnDate(
-					overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+					overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00Z"), timezone),
 					"16:00",
 					timezone,
 				),
@@ -342,7 +342,7 @@ describe("Business Hours Utils", () => {
 			// falls through to the next day that is actually open
 			expect(result?.openingTime).toEqual(
 				setHmOnDate(
-					overrideTimeZoneOnUTC(new Date("2025-03-12T06:00:00"), timezone),
+					overrideTimeZoneOnUTC(new Date("2025-03-12T06:00:00Z"), timezone),
 					"09:00",
 					timezone,
 				),
@@ -356,7 +356,7 @@ describe("Business Hours Utils", () => {
 			];
 
 			const afternoonOpen = setHmOnDate(
-				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00Z"), timezone),
 				"13:00",
 				timezone,
 			);
@@ -364,7 +364,7 @@ describe("Business Hours Utils", () => {
 			const result = getOpeningClosingTimeOnDate({
 				// after the morning shift has closed
 				date: setHmOnDate(
-					overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+					overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00Z"), timezone),
 					"12:30",
 					timezone,
 				),
@@ -397,12 +397,12 @@ describe("Business Hours Utils", () => {
 			];
 
 			const opening = setHmOnDate(
-				overrideTimeZoneOnUTC(new Date("2025-03-12T06:00:00"), timezone),
+				overrideTimeZoneOnUTC(new Date("2025-03-12T06:00:00Z"), timezone),
 				"09:00",
 				timezone,
 			);
 			const closing = setHmOnDate(
-				overrideTimeZoneOnUTC(new Date("2025-03-12T06:00:00"), timezone),
+				overrideTimeZoneOnUTC(new Date("2025-03-12T06:00:00Z"), timezone),
 				"17:00",
 				timezone,
 			);
@@ -427,17 +427,17 @@ describe("Business Hours Utils", () => {
 
 		it("should use default parameters when not provided", () => {
 			vi.useFakeTimers();
-			vi.setSystemTime(new Date("2025-03-11T00:00:00"));
+			vi.setSystemTime(new Date("2025-03-11T00:00:00Z"));
 
 			const businessHours = [{ day: 2, startTime: "09:00", endTime: "17:00" }];
 
 			const opening = setHmOnDate(
-				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00Z"), timezone),
 				"09:00",
 				timezone,
 			);
 			const closing = setHmOnDate(
-				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00"), timezone),
+				overrideTimeZoneOnUTC(new Date("2025-03-11T06:00:00Z"), timezone),
 				"17:00",
 				timezone,
 			);
