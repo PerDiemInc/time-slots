@@ -7,11 +7,11 @@ import {
 	isValid,
 	startOfDay,
 } from "date-fns";
-import { findTimeZone, getZonedTime } from "timezone-support";
 
 import { MIN_LOOKAHEAD_DAYS } from "../constants";
 import type { GetNextAvailableDatesParams } from "../types";
 import { setHmOnDate } from "../utils/date";
+import { getZonedParts } from "../utils/zoned";
 
 export function getNextAvailableDates({
 	startDate,
@@ -30,7 +30,6 @@ export function getNextAvailableDates({
 		return [];
 	}
 
-	const timeZoneInfo = findTimeZone(timeZone);
 	const dates: Date[] = [];
 
 	const lookaheadDays = Math.max(MIN_LOOKAHEAD_DAYS, datesCount);
@@ -56,7 +55,7 @@ export function getNextAvailableDates({
 			continue;
 		}
 
-		const zonedDate = getZonedTime(date, timeZoneInfo);
+		const zonedDate = getZonedParts(date, timeZone);
 		const dayOfWeek = zonedDate.dayOfWeek ?? 0;
 
 		const todayBusinessHoursOverride = businessHoursOverrides.filter(

@@ -1,4 +1,4 @@
-import { findTimeZone, getUnixTime } from "timezone-support";
+import { TZDate } from "@date-fns/tz";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
 	CartItem,
@@ -23,8 +23,6 @@ import { getSchedules } from "../src/index";
  * local("2026-01-05")            // → midnight in that timezone
  */
 function localTime(timeZone: string) {
-	const tz = findTimeZone(timeZone);
-
 	return (readable: string): Date => {
 		const cleaned = readable.replace(/^[A-Za-z]{3}\s+/, "");
 		const [datePart, timePart] = cleaned.split(" ");
@@ -34,10 +32,16 @@ function localTime(timeZone: string) {
 			: [0, 0];
 
 		return new Date(
-			getUnixTime(
-				{ year, month, day, hours, minutes, seconds: 0, milliseconds: 0 },
-				tz,
-			),
+			new TZDate(
+				year,
+				month - 1,
+				day,
+				hours,
+				minutes,
+				0,
+				0,
+				timeZone,
+			).getTime(),
 		);
 	};
 }
@@ -1302,9 +1306,7 @@ describe("time-slots", () => {
 			const { schedule } = getSchedules(
 				buildParams(TIMEZONE, {
 					location: {
-						pickup_hours: [
-							{ day: 1, start_time: "08:00", end_time: "20:00" },
-						],
+						pickup_hours: [{ day: 1, start_time: "08:00", end_time: "20:00" }],
 						catering: {
 							enabled: false,
 							pickup: { start_time: "10:00", end_time: "15:00" },
@@ -1325,9 +1327,7 @@ describe("time-slots", () => {
 			const { schedule } = getSchedules(
 				buildParams(TIMEZONE, {
 					location: {
-						pickup_hours: [
-							{ day: 1, start_time: "06:00", end_time: "22:00" },
-						],
+						pickup_hours: [{ day: 1, start_time: "06:00", end_time: "22:00" }],
 						catering: {
 							enabled: "true" as unknown as boolean,
 							pickup: { start_time: "10:00", end_time: "15:00" },
@@ -1348,9 +1348,7 @@ describe("time-slots", () => {
 			const { schedule } = getSchedules(
 				buildParams(TIMEZONE, {
 					location: {
-						pickup_hours: [
-							{ day: 1, start_time: "06:00", end_time: "22:00" },
-						],
+						pickup_hours: [{ day: 1, start_time: "06:00", end_time: "22:00" }],
 						catering: {
 							enabled: "false" as unknown as boolean,
 							pickup: { start_time: "10:00", end_time: "15:00" },
@@ -1373,9 +1371,7 @@ describe("time-slots", () => {
 			const { schedule } = getSchedules(
 				buildParams(TIMEZONE, {
 					location: {
-						pickup_hours: [
-							{ day: 1, start_time: "06:00", end_time: "22:00" },
-						],
+						pickup_hours: [{ day: 1, start_time: "06:00", end_time: "22:00" }],
 						catering: {
 							enabled: true,
 							pickup: { start_time: "10:00", end_time: "17:00" },
@@ -1399,9 +1395,7 @@ describe("time-slots", () => {
 			const { schedule } = getSchedules(
 				buildParams(TIMEZONE, {
 					location: {
-						pickup_hours: [
-							{ day: 1, start_time: "06:00", end_time: "22:00" },
-						],
+						pickup_hours: [{ day: 1, start_time: "06:00", end_time: "22:00" }],
 						catering: {
 							enabled: true,
 							pickup: { start_time: "10:00", end_time: "17:00" },
@@ -1700,9 +1694,7 @@ describe("time-slots", () => {
 				buildParams(TIMEZONE, {
 					fulfillment: "DELIVERY",
 					location: {
-						pickup_hours: [
-							{ day: 1, start_time: "06:00", end_time: "22:00" },
-						],
+						pickup_hours: [{ day: 1, start_time: "06:00", end_time: "22:00" }],
 						delivery_hours: [
 							{ day: 1, start_time: "07:00", end_time: "21:00" },
 						],
@@ -1762,9 +1754,7 @@ describe("time-slots", () => {
 			const { schedule } = getSchedules(
 				buildParams(TIMEZONE, {
 					location: {
-						pickup_hours: [
-							{ day: 1, start_time: "08:00", end_time: "20:00" },
-						],
+						pickup_hours: [{ day: 1, start_time: "08:00", end_time: "20:00" }],
 						catering: {
 							enabled: true,
 							pickup: { start_time: "10:00", end_time: "15:00" },
@@ -1852,9 +1842,7 @@ describe("time-slots", () => {
 				const slots = day.slots as Date[];
 				const first = slots[0];
 				const last = slots[slots.length - 1];
-				expect(first.getUTCHours() * 60 + first.getUTCMinutes()).toBe(
-					11 * 60,
-				);
+				expect(first.getUTCHours() * 60 + first.getUTCMinutes()).toBe(11 * 60);
 				expect(last.getUTCHours() * 60 + last.getUTCMinutes()).toBe(14 * 60);
 			}
 		});
