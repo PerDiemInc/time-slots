@@ -38,7 +38,6 @@ export function generateLocationFulfillmentSchedule({
 	const minuteCadenceDaysSkipped = !isDaysCadence
 		? Math.floor(prepTimeFrequency / MINUTES_PER_DAY)
 		: 0;
-	const hasDaySkipping = isDaysCadence || minuteCadenceDaysSkipped > 0;
 
 	const dates = getNextAvailableDates({
 		startDate: startDate || currentDate,
@@ -48,7 +47,8 @@ export function generateLocationFulfillmentSchedule({
 		datesCount: daysCount,
 		preSaleDates,
 		endDate,
-		isDaysCadence: hasDaySkipping,
+		// Minute prep keeps today after close: the target day already rolls a late hour forward.
+		isDaysCadence,
 	});
 
 	const daysToSkip = isDaysCadence

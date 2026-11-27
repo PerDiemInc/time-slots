@@ -1077,15 +1077,12 @@ describe("time-slots", () => {
 			);
 		});
 
-		it("MINUTE cadence with day skipping: now after close projects time-of-day forward (differs from DAY cadence)", () => {
+		it("MINUTE cadence with day skipping: now after close projects time-of-day forward", () => {
 			// prep = 1500 (1 day + 60min), now = Mon 18:00 (after close), all days open
-			// Mon excluded by requestTime check → dates = [Tue, Wed, ...] → slice(1) = [Wed, ...]
-			// For Wed: projectedNow = Wed 18:00 (Mon's time-of-day projected) + 60 = Wed 19:00
-			// 19:00 > Wed close 17:00 → Wed skipped, spills to Thu
-			// Thu (future day branch): first slot = Thu 09:00
-			//
-			// Contrast: DAY cadence with same now would give Wed 09:00 — MINUTE projection
-			// re-applies the original time-of-day, which can push past the landing day's close.
+			// Mon stays in dates = [Mon, Tue, ...] → slice(1) = [Tue, ...]
+			// For Tue: projectedNow = Tue 18:00 (Mon's time-of-day projected) + 60 = Tue 19:00
+			// 19:00 > Tue close 17:00 → Tue skipped, spills to Wed
+			// Wed (future day branch): first slot = Wed 09:00
 			vi.setSystemTime(local("Mon 2026-01-05 18:00"));
 
 			const { schedule } = getSchedules(
@@ -1102,9 +1099,9 @@ describe("time-slots", () => {
 				}),
 			);
 
-			expect(schedule[0].date).toEqual(local("Thu 2026-01-08"));
+			expect(schedule[0].date).toEqual(local("Wed 2026-01-07"));
 			expect((schedule[0].slots as Date[])[0]).toEqual(
-				local("Thu 2026-01-08 09:00"),
+				local("Wed 2026-01-07 09:00"),
 			);
 		});
 
@@ -2171,11 +2168,11 @@ describe("time-slots", () => {
 				);
 			});
 
-			it("1-day+60min prep, now AFTER closing → today excluded, skip from next open day", () => {
+			it("1-day+60min prep, now AFTER closing → today still counts, projected time spills once", () => {
 				// prep = 1500, now = Mon 18:00 (after close 17:00)
-				// Mon excluded → dates = [Tue, Wed, ...] → slice(1) = [Wed, ...]
-				// Wed: projectedNow = Wed 18:00 + 60 = Wed 19:00 > close 17:00
-				// Wed spills → Thu: first slot = Thu 09:00
+				// Mon stays → dates = [Mon, Tue, ...] → slice(1) = [Tue, ...]
+				// Tue: projectedNow = Tue 18:00 + 60 = Tue 19:00 > close 17:00
+				// Tue spills → Wed: first slot = Wed 09:00
 				vi.setSystemTime(local("Mon 2026-01-05 18:00"));
 
 				const { schedule } = getSchedules(
@@ -2192,9 +2189,9 @@ describe("time-slots", () => {
 					}),
 				);
 
-				expect(schedule[0].date).toEqual(local("Thu 2026-01-08"));
+				expect(schedule[0].date).toEqual(local("Wed 2026-01-07"));
 				expect((schedule[0].slots as Date[])[0]).toEqual(
-					local("Thu 2026-01-08 09:00"),
+					local("Wed 2026-01-07 09:00"),
 				);
 			});
 
@@ -2251,8 +2248,8 @@ describe("time-slots", () => {
 
 			it("exactly 1-day prep (1440 min) MINUTE cadence, now AFTER closing → projects past close, spills", () => {
 				// prep = 1440, now = Mon 18:00
-				// Mon excluded → dates = [Tue, Wed] → slice(1) = [Wed]
-				// projectedNow on Wed = Wed 18:00 + 0 = 18:00 > close 17:00 → Wed spills
+				// Mon stays → dates = [Mon, Tue, Wed, Thu] → slice(1) = [Tue, Wed, Thu]
+				// projectedNow on Tue = Tue 18:00 + 0 = 18:00 > close 17:00 → Tue spills
 				vi.setSystemTime(local("Mon 2026-01-05 18:00"));
 
 				const { schedule } = getSchedules(
@@ -2269,10 +2266,10 @@ describe("time-slots", () => {
 					}),
 				);
 
-				// Wed projected time spills → Thu
-				expect(schedule[0].date).toEqual(local("Thu 2026-01-08"));
+				// Tue projected time spills → Wed
+				expect(schedule[0].date).toEqual(local("Wed 2026-01-07"));
 				expect((schedule[0].slots as Date[])[0]).toEqual(
-					local("Thu 2026-01-08 09:00"),
+					local("Wed 2026-01-07 09:00"),
 				);
 			});
 		});
@@ -2367,7 +2364,7 @@ describe("time-slots", () => {
 				);
 			});
 
-			it("same prep (1 day), now AFTER closing: DAY → Wed 09:00, MINUTE → Thu 09:00 (projected spill)", () => {
+			it("same prep (1 day), now AFTER closing: DAY → Wed 09:00, MINUTE → Wed 09:00 (projected spill)", () => {
 				vi.setSystemTime(local("Mon 2026-01-05 18:00"));
 
 				const dayResult = getSchedules(
@@ -2406,11 +2403,11 @@ describe("time-slots", () => {
 				expect((dayResult.schedule[0].slots as Date[])[0]).toEqual(
 					local("Wed 2026-01-07 09:00"),
 				);
-				// MINUTE: Mon excluded, dates=[Tue,Wed,Thu,...], slice(1)=[Wed,...]
-				// Wed: projected 18:00+0=18:00 > close → spill to Thu
-				expect(minResult.schedule[0].date).toEqual(local("Thu 2026-01-08"));
+				// MINUTE: Mon stays, dates=[Mon,Tue,Wed,...], slice(1)=[Tue,...]
+				// Tue: projected 18:00+0=18:00 > close → spill to Wed
+				expect(minResult.schedule[0].date).toEqual(local("Wed 2026-01-07"));
 				expect((minResult.schedule[0].slots as Date[])[0]).toEqual(
-					local("Thu 2026-01-08 09:00"),
+					local("Wed 2026-01-07 09:00"),
 				);
 			});
 
