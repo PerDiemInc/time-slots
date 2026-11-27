@@ -344,6 +344,47 @@ describe("getSchedules", () => {
 
 			vi.useRealTimers();
 		});
+
+		it.each([
+			// Tue 9:00 PM Sydney + 48h = Thu 9:00 PM (closed) → Fri 7:30 AM
+			["2026-11-24T10:00:00.000Z", "2026-11-26T20:30:00.000Z"],
+			// Wed 4:15 PM Sydney + 48h = Fri 4:15 PM (closed) → Sat 7:30 AM
+			["2026-11-25T05:15:00.000Z", "2026-11-27T20:30:00.000Z"],
+		])("ordered at %s after the catering close, 48h prep starts at %s, not a day later", (now, expected) => {
+			vi.useFakeTimers();
+			vi.setSystemTime(new Date(now));
+
+			const location = makeLocation({
+				timezone: "Australia/Sydney",
+				pickup_hours: allDaysPickupHours.map(({ day }) => ({
+					day,
+					start_time: "07:00",
+					end_time: "14:30",
+				})),
+				catering: {
+					enabled: true,
+					pickup: { start_time: "07:00", end_time: "14:00" },
+					delivery: { start_time: "00:00", end_time: "23:59" },
+				},
+			});
+			const { schedule } = getSchedules({
+				store: makeStore({ max_future_order_days: 60 }),
+				locations: [location],
+				cartItems: [],
+				fulfillmentPreference: "PICKUP",
+				prepTimeSettings: makePrepTimeSettings({
+					prepTimeInMinutes: 48 * 60,
+					openingBuffer: 30,
+					closingBuffer: 30,
+				}),
+				currentLocation: location,
+				isCateringFlow: true,
+			});
+
+			expect(schedule[0].firstAvailableSlot).toEqual(new Date(expected));
+
+			vi.useRealTimers();
+		});
 	});
 });
 

@@ -352,13 +352,13 @@ describe("generate-slots", () => {
 			).toEqual(new Date("2025-01-07T08:15:00.000Z"));
 		});
 
-		it("24h prep, now past closing → today not counted, projected past closing rolls", () => {
+		it("24h prep, now past closing → projected past closing rolls once", () => {
 			// Mon 21:00 (past closing) + 1440 min
-			// Mon not counted → skip Tue → Wed, project 21:00 > 20:00 → Thu 08:00
+			// Skip Mon → Tue, project 21:00 > 20:00 → Wed 08:00
 			vi.setSystemTime(new Date("2025-01-06T21:00:00.000Z"));
 			expect(
 				getFirstSlot(makePrepTimeSettings({ prepTimeInMinutes: 1440 })),
-			).toEqual(new Date("2025-01-09T08:00:00.000Z")); // Thursday
+			).toEqual(new Date("2025-01-08T08:00:00.000Z")); // Wednesday
 		});
 
 		it("48h prep during hours → skip 2 open days, preserve time-of-day", () => {
@@ -369,13 +369,13 @@ describe("generate-slots", () => {
 			).toEqual(new Date("2025-01-08T14:00:00.000Z")); // Wednesday
 		});
 
-		it("48h prep, now past closing → today not counted, projected past closing rolls", () => {
+		it("48h prep, now past closing → projected past closing rolls once", () => {
 			// Mon 21:00 + 2880 min
-			// Mon not counted → skip Tue, Wed → Thu, project 21:00 > 20:00 → Fri 08:00
+			// Skip Mon, Tue → Wed, project 21:00 > 20:00 → Thu 08:00
 			vi.setSystemTime(new Date("2025-01-06T21:00:00.000Z"));
 			expect(
 				getFirstSlot(makePrepTimeSettings({ prepTimeInMinutes: 2880 })),
-			).toEqual(new Date("2025-01-10T08:00:00.000Z")); // Friday
+			).toEqual(new Date("2025-01-09T08:00:00.000Z")); // Thursday
 		});
 
 		it("skips closed days for minute cadence (Sun closed)", () => {
